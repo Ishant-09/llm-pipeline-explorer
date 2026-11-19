@@ -1,0 +1,3671 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Pipeline Explorer | Interactive AI Architecture Lab</title>
+  <meta name="description" content="Explore how Large Language Models work from raw text to next-token prediction: interactive BPE tokenization, vocabulary analysis, vector embeddings, 3D vector space, self-attention mechanisms, and end-to-end pipeline execution.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Three.js and OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* ==========================================================================
+       CSS VARIABLES & THEMES
+       ========================================================================== */
+    :root {
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-display: 'Space Grotesk', var(--font-sans);
+
+      /* Dark Mode Palette (Default) */
+      --bg-base: #07090e;
+      --bg-surface: #0e131f;
+      --bg-surface-elevated: #141b2d;
+      --bg-surface-overlay: #1c263f;
+      --bg-input: #0a0e18;
+      --border-subtle: #1e293b;
+      --border-strong: #334155;
+      --border-accent: rgba(56, 189, 248, 0.3);
+
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --text-dim: #475569;
+
+      --cyan-400: #22d3ee;
+      --cyan-500: #06b6d4;
+      --cyan-glow: rgba(6, 182, 212, 0.25);
+
+      --blue-400: #60a5fa;
+      --blue-500: #3b82f6;
+      --blue-glow: rgba(59, 130, 246, 0.25);
+
+      --violet-400: #a78bfa;
+      --violet-500: #8b5cf6;
+      --violet-glow: rgba(139, 92, 246, 0.25);
+
+      --emerald-400: #34d399;
+      --emerald-500: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.25);
+
+      --amber-400: #fbbf24;
+      --amber-500: #f59e0b;
+
+      --rose-400: #fb7185;
+      --rose-500: #f43f5e;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 20px;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -1px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 12px 28px -4px rgba(0, 0, 0, 0.6), 0 4px 12px -2px rgba(0, 0, 0, 0.5);
+      --shadow-glow: 0 0 20px var(--cyan-glow);
+
+      --sidebar-width: 270px;
+      --header-height: 64px;
+      --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Light Mode */
+    html.light {
+      --bg-base: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #f1f5f9;
+      --bg-surface-overlay: #e2e8f0;
+      --bg-input: #ffffff;
+      --border-subtle: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --border-accent: rgba(6, 182, 212, 0.3);
+
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+      --shadow-lg: 0 12px 28px -4px rgba(0, 0, 0, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.06);
+      --shadow-glow: 0 0 20px rgba(6, 182, 212, 0.15);
+    }
+
+    /* ==========================================================================
+       RESET & BASE STYLES
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-base);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-strong);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       LAYOUT: APP SHELL
+       ========================================================================== */
+    .app-layout {
+      display: flex;
+      min-height: 100vh;
+      width: 100%;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 40;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .sidebar-brand {
+      height: var(--header-height);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--cyan-500), var(--blue-500), var(--violet-500));
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      box-shadow: 0 0 14px var(--cyan-glow);
+    }
+
+    .brand-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+    .brand-sub {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--cyan-400);
+      font-weight: 600;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .nav-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      padding: 12px 10px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 12px;
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      transition: var(--transition);
+      border: 1px solid transparent;
+      user-select: none;
+    }
+
+    .nav-item:hover {
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+    }
+
+    .nav-item.active {
+      background: rgba(6, 182, 212, 0.1);
+      color: var(--cyan-400);
+      border-color: rgba(6, 182, 212, 0.25);
+      font-weight: 600;
+    }
+
+    .nav-item i, .nav-item svg {
+      width: 17px;
+      height: 17px;
+      flex-shrink: 0;
+    }
+
+    .nav-item .badge {
+      margin-left: auto;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      padding: 2px 6px;
+      border-radius: 9999px;
+      background: var(--bg-surface-elevated);
+      color: var(--text-muted);
+      border: 1px solid var(--border-subtle);
+    }
+    .nav-item.active .badge {
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--cyan-400);
+      border-color: rgba(6, 182, 212, 0.3);
+    }
+
+    .sidebar-footer {
+      padding: 14px;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--emerald-400);
+      box-shadow: 0 0 8px var(--emerald-glow);
+      animation: pulse-dot 2s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    /* Main Area */
+    .main-wrapper {
+      flex: 1;
+      margin-left: var(--sidebar-width);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    /* Header */
+    .top-header {
+      height: var(--header-height);
+      background: rgba(14, 19, 31, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+
+    html.light .top-header {
+      background: rgba(255, 255, 255, 0.85);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .menu-toggle {
+      display: none;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: var(--radius-sm);
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .breadcrumb-active {
+      color: var(--text-primary);
+      font-weight: 600;
+      font-family: var(--font-display);
+      font-size: 14px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-icon:hover {
+      color: var(--text-primary);
+      border-color: var(--border-strong);
+      background: var(--bg-surface-overlay);
+    }
+    .btn-icon svg {
+      width: 17px;
+      height: 17px;
+    }
+
+    .btn-header-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 14px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-header-action:hover {
+      border-color: var(--cyan-500);
+      color: var(--cyan-400);
+    }
+    .btn-header-action svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Content Area */
+    .content-container {
+      padding: 28px;
+      max-width: 1480px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* Section Views */
+    .view-section {
+      display: none;
+      animation: fadeIn 0.25s ease-out;
+    }
+    .view-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ==========================================================================
+       TYPOGRAPHY & UTILITY UI
+       ========================================================================== */
+    .section-header {
+      margin-bottom: 24px;
+    }
+    .section-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--cyan-400);
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      padding: 3px 10px;
+      border-radius: 9999px;
+      margin-bottom: 8px;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+    .section-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      max-width: 780px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      transition: var(--transition);
+    }
+    .card:hover {
+      border-color: var(--border-strong);
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .card-title svg {
+      color: var(--cyan-400);
+      width: 17px;
+      height: 17px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      border: 1px solid transparent;
+      font-family: var(--font-sans);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--cyan-500), var(--blue-500));
+      color: #ffffff;
+      box-shadow: 0 2px 10px var(--cyan-glow);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 4px 16px rgba(6, 182, 212, 0.45);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: var(--bg-surface-elevated);
+      border-color: var(--border-subtle);
+      color: var(--text-primary);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-surface-overlay);
+      border-color: var(--border-strong);
+    }
+    .btn-outline {
+      background: transparent;
+      border-color: var(--border-strong);
+      color: var(--text-secondary);
+    }
+    .btn-outline:hover {
+      color: var(--text-primary);
+      border-color: var(--cyan-400);
+    }
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 11px;
+    }
+    .btn-danger {
+      background: rgba(244, 63, 94, 0.1);
+      border-color: rgba(244, 63, 94, 0.25);
+      color: var(--rose-400);
+    }
+    .btn-danger:hover {
+      background: rgba(244, 63, 94, 0.2);
+    }
+
+    /* Form Inputs */
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .input-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .input-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: normal;
+    }
+    .form-control {
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 9px 12px;
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      transition: var(--transition);
+      width: 100%;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--cyan-500);
+      box-shadow: 0 0 0 2px var(--cyan-glow);
+    }
+    textarea.form-control {
+      resize: vertical;
+      min-height: 80px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.6;
+    }
+    select.form-control {
+      cursor: pointer;
+    }
+
+    /* Preset Chips */
+    .preset-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 8px 0 16px;
+    }
+    .preset-chip {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-size: 11.5px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .preset-chip:hover {
+      color: var(--cyan-400);
+      border-color: var(--cyan-500);
+      background: var(--bg-surface-overlay);
+    }
+
+    /* Metric stats pills */
+    .metric-card {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+    }
+    .metric-val {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--cyan-400);
+      letter-spacing: -0.02em;
+    }
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+
+    /* Token Visualizer Chips */
+    .token-display-box {
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      min-height: 100px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-content: flex-start;
+      line-height: 1.8;
+      font-family: var(--font-mono);
+    }
+
+    .token-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      cursor: pointer;
+      transition: var(--transition);
+      border: 1px solid transparent;
+      user-select: none;
+      white-space: pre-wrap;
+    }
+    .token-chip:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      border-color: #ffffff;
+      z-index: 2;
+    }
+    .token-chip.selected {
+      box-shadow: 0 0 0 2px var(--cyan-400);
+      border-color: #ffffff;
+    }
+    .token-chip-id {
+      font-size: 9px;
+      opacity: 0.7;
+      font-weight: 600;
+      padding-left: 2px;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+    }
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      text-align: left;
+    }
+    table.data-table th {
+      background: var(--bg-surface-elevated);
+      padding: 10px 14px;
+      color: var(--text-secondary);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-subtle);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    table.data-table th:hover {
+      color: var(--cyan-400);
+    }
+    table.data-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+    }
+    table.data-table tr:last-child td {
+      border-bottom: none;
+    }
+    table.data-table tr:hover td {
+      background: var(--bg-surface-elevated);
+    }
+
+    /* Vector Heatmap Cell */
+    .vector-bar {
+      display: flex;
+      gap: 2px;
+      overflow-x: auto;
+      padding: 4px;
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+    }
+    .vector-cell {
+      flex: 1;
+      min-width: 28px;
+      height: 38px;
+      border-radius: 3px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 600;
+      color: #ffffff;
+      cursor: pointer;
+      position: relative;
+    }
+
+    /* Interactive Pipeline Progress */
+    .pipeline-stepper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      margin: 20px 0 30px;
+    }
+    .pipeline-stepper::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 30px;
+      right: 30px;
+      height: 2px;
+      background: var(--border-subtle);
+      z-index: 1;
+    }
+    .pipeline-step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+      z-index: 2;
+      cursor: pointer;
+    }
+    .step-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--bg-surface-elevated);
+      border: 2px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      transition: var(--transition);
+    }
+    .pipeline-step-item.active .step-circle {
+      background: var(--cyan-500);
+      color: #ffffff;
+      border-color: var(--cyan-400);
+      box-shadow: 0 0 16px var(--cyan-glow);
+    }
+    .pipeline-step-item.completed .step-circle {
+      background: var(--emerald-500);
+      color: #ffffff;
+      border-color: var(--emerald-400);
+    }
+    .step-label {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .pipeline-step-item.active .step-label {
+      color: var(--cyan-400);
+    }
+
+    /* 3D Canvas Container */
+    #vector-3d-canvas-container {
+      width: 100%;
+      height: 520px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      position: relative;
+      background: #05070c;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .canvas-overlay-ui {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .canvas-overlay-ui > * {
+      pointer-events: auto;
+    }
+
+    .canvas-controls-bottom {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .canvas-controls-bottom > * {
+      pointer-events: auto;
+    }
+
+    #point-hover-tooltip {
+      position: absolute;
+      background: rgba(14, 19, 31, 0.95);
+      border: 1px solid var(--cyan-500);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 11.5px;
+      font-family: var(--font-mono);
+      color: #ffffff;
+      pointer-events: none;
+      display: none;
+      z-index: 20;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+    }
+
+    /* Modal dialog */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.active {
+      display: flex;
+    }
+    .modal-dialog {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-xl);
+      max-width: 620px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      padding: 24px;
+      animation: modalPop 0.2s ease-out;
+    }
+    @keyframes modalPop {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Educational Concept Accordion / Tabs */
+    .concept-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: 14px;
+      transition: var(--transition);
+    }
+    .concept-header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      background: var(--bg-surface);
+    }
+    .concept-header:hover {
+      background: var(--bg-surface-elevated);
+    }
+    .concept-body {
+      padding: 0 20px 20px;
+      color: var(--text-secondary);
+      font-size: 13.5px;
+      line-height: 1.7;
+      display: none;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 16px;
+    }
+    .concept-card.open .concept-body {
+      display: block;
+    }
+
+    /* Math formula display */
+    .math-block {
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--cyan-400);
+      margin: 12px 0;
+      overflow-x: auto;
+      text-align: center;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .grid-3, .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .main-wrapper {
+        margin-left: 0;
+      }
+      .menu-toggle {
+        display: inline-flex;
+      }
+      .grid-2, .grid-3, .grid-4 {
+        grid-template-columns: 1fr;
+      }
+      .top-header {
+        padding: 0 16px;
+      }
+      .content-container {
+        padding: 16px;
+      }
+      #vector-3d-canvas-container {
+        height: 380px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-layout">
+    <!-- ====================================================================
+         SIDEBAR NAVIGATION
+         ==================================================================== -->
+    <aside class="sidebar" id="app-sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo">
+          <i data-lucide="cpu"></i>
+        </div>
+        <div>
+          <div class="brand-title">LLM EXPLORER</div>
+          <div class="brand-sub">Neural Architecture Lab</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-label">Core Pipeline</div>
+        <a class="nav-item active" data-target="overview">
+          <i data-lucide="layout-dashboard"></i>
+          <span>Overview</span>
+          <span class="badge">v2.4</span>
+        </a>
+        <a class="nav-item" data-target="tokenizer">
+          <i data-lucide="scissors"></i>
+          <span>Tokenizer Lab</span>
+          <span class="badge">BPE</span>
+        </a>
+        <a class="nav-item" data-target="vocabulary">
+          <i data-lucide="book-open"></i>
+          <span>Vocabulary Explorer</span>
+        </a>
+        <a class="nav-item" data-target="embeddings">
+          <i data-lucide="binary"></i>
+          <span>Embedding Studio</span>
+        </a>
+        <a class="nav-item" data-target="vector-space">
+          <i data-lucide="box"></i>
+          <span>Vector Space (3D)</span>
+          <span class="badge" style="color:var(--emerald-400)">Live</span>
+        </a>
+        <a class="nav-item" data-target="similarity">
+          <i data-lucide="git-compare"></i>
+          <span>Similarity Analyzer</span>
+        </a>
+        <a class="nav-item" data-target="attention">
+          <i data-lucide="network"></i>
+          <span>Attention Visualizer</span>
+        </a>
+
+        <div class="nav-label">Workflows & Theory</div>
+        <a class="nav-item" data-target="pipeline">
+          <i data-lucide="play-circle"></i>
+          <span>Pipeline Playground</span>
+          <span class="badge" style="color:var(--violet-400)">E2E</span>
+        </a>
+        <a class="nav-item" data-target="concepts">
+          <i data-lucide="graduation-cap"></i>
+          <span>Learn & Concepts</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span>Engine: Client JS / Offline Ready</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="btn-open-tour" style="width:100%; justify-content:center;">
+          <i data-lucide="sparkles" style="width:13px;height:13px;"></i>
+          <span>Quick Tour</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ====================================================================
+         MAIN CONTENT AREA
+         ==================================================================== -->
+    <div class="main-wrapper">
+      <!-- Top Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="menu-toggle" id="menu-toggle-btn" aria-label="Toggle Navigation">
+            <i data-lucide="menu"></i>
+          </button>
+          <div class="breadcrumb">
+            <span>Explorer</span>
+            <span>/</span>
+            <span class="breadcrumb-active" id="current-section-breadcrumb">Overview</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <button class="btn-header-action" id="btn-export-all-data" title="Export Current State as JSON">
+            <i data-lucide="download"></i>
+            <span>Export Data</span>
+          </button>
+          <button class="btn-icon" id="theme-toggle-btn" title="Toggle Light/Dark Theme">
+            <i data-lucide="moon" id="theme-icon"></i>
+          </button>
+          <button class="btn-icon" id="btn-shortcuts-dialog" title="Keyboard Shortcuts (?)">
+            <i data-lucide="command"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Body Container -->
+      <main class="content-container">
+
+        <!-- ================================================================
+             SECTION 1: OVERVIEW DASHBOARD
+             ================================================================ -->
+        <section class="view-section active" id="sec-overview">
+          <div class="section-header">
+            <div class="section-tag"><i data-lucide="zap" style="width:12px;height:12px;"></i> Architecture Overview</div>
+            <h1 class="section-title">Large Language Model Pipeline Explorer</h1>
+            <p class="section-desc">
+              Understand the complete journey of human text: from subword tokenization and high-dimensional vector embeddings, to multi-head self-attention and next-token probability distribution.
+            </p>
+          </div>
+
+          <!-- Interactive Full Pipeline Schematic -->
+          <div class="card" style="margin-bottom: 24px; background: linear-gradient(180deg, var(--bg-surface), var(--bg-surface-elevated));">
+            <div class="card-title">
+              <i data-lucide="git-merge"></i>
+              <span>Interactive LLM Pipeline Flow (Click any stage to inspect)</span>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 14px;">
+              <div class="metric-card" style="cursor:pointer; text-align:center; transition:var(--transition);" onclick="switchTab('tokenizer')">
+                <div style="font-size:11px; color:var(--cyan-400); font-weight:600; text-transform:uppercase;">Stage 01</div>
+                <div style="font-size:15px; font-weight:700; margin:4px 0;">Tokenization</div>
+                <div style="font-size:11px; color:var(--text-muted);">Text &rarr; Subwords & Byte Pairs</div>
+              </div>
+              <div class="metric-card" style="cursor:pointer; text-align:center; transition:var(--transition);" onclick="switchTab('vocabulary')">
+                <div style="font-size:11px; color:var(--blue-400); font-weight:600; text-transform:uppercase;">Stage 02</div>
+                <div style="font-size:15px; font-weight:700; margin:4px 0;">Vocabulary IDs</div>
+                <div style="font-size:11px; color:var(--text-muted);">Discrete Integer Mapping</div>
+              </div>
+              <div class="metric-card" style="cursor:pointer; text-align:center; transition:var(--transition);" onclick="switchTab('embeddings')">
+                <div style="font-size:11px; color:var(--violet-400); font-weight:600; text-transform:uppercase;">Stage 03</div>
+                <div style="font-size:15px; font-weight:700; margin:4px 0;">Embeddings</div>
+                <div style="font-size:11px; color:var(--text-muted);">Continuous Dense Vectors ($d$)</div>
+              </div>
+              <div class="metric-card" style="cursor:pointer; text-align:center; transition:var(--transition);" onclick="switchTab('attention')">
+                <div style="font-size:11px; color:var(--emerald-400); font-weight:600; text-transform:uppercase;">Stage 04</div>
+                <div style="font-size:15px; font-weight:700; margin:4px 0;">Self-Attention</div>
+                <div style="font-size:11px; color:var(--text-muted);">Query, Key, Value ($\text{Softmax}$)</div>
+              </div>
+              <div class="metric-card" style="cursor:pointer; text-align:center; transition:var(--transition);" onclick="switchTab('pipeline')">
+                <div style="font-size:11px; color:var(--amber-400); font-weight:600; text-transform:uppercase;">Stage 05</div>
+                <div style="font-size:15px; font-weight:700; margin:4px 0;">Next Token Logits</div>
+                <div style="font-size:11px; color:var(--text-muted);">Softmax Sampling & Output</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature Cards Grid -->
+          <div class="grid-3" style="margin-bottom: 24px;">
+            <div class="card" onclick="switchTab('tokenizer')" style="cursor:pointer;">
+              <div class="card-title">
+                <i data-lucide="scissors"></i>
+                <span>Tokenizer Lab</span>
+              </div>
+              <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">
+                Train a live Byte Pair Encoding (BPE) subword tokenizer on custom text. Adjust vocabulary budget and inspect token boundaries and IDs.
+              </p>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:11px; font-family:var(--font-mono); color:var(--cyan-400);">BPE Algorithm</span>
+                <span class="btn btn-sm btn-outline">Launch Lab &rarr;</span>
+              </div>
+            </div>
+
+            <div class="card" onclick="switchTab('vector-space')" style="cursor:pointer;">
+              <div class="card-title">
+                <i data-lucide="box"></i>
+                <span>3D Vector Space</span>
+              </div>
+              <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">
+                Rotate, zoom, and explore continuous word and sentence embeddings in an interactive 3D coordinate space with real-time category clustering.
+              </p>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:11px; font-family:var(--font-mono); color:var(--emerald-400);">Three.js Orbit</span>
+                <span class="btn btn-sm btn-outline">Explore 3D &rarr;</span>
+              </div>
+            </div>
+
+            <div class="card" onclick="switchTab('attention')" style="cursor:pointer;">
+              <div class="card-title">
+                <i data-lucide="network"></i>
+                <span>Attention Visualizer</span>
+              </div>
+              <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">
+                Calculate scaled dot-product attention matrices: explore how words attend to one another across multiple specialized attention heads.
+              </p>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:11px; font-family:var(--font-mono); color:var(--violet-400);">Multi-Head QKV</span>
+                <span class="btn btn-sm btn-outline">Visualize &rarr;</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Interactive Presets / Experiments -->
+          <div class="card">
+            <div class="card-title">
+              <i data-lucide="flask-conical"></i>
+              <span>Preset Guided Experiments</span>
+            </div>
+            <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">
+              Select a pre-configured scenario to preload inputs across all modules:
+            </p>
+            <div class="grid-3">
+              <button class="btn btn-secondary" style="justify-content: flex-start; text-align:left; padding:12px;" onclick="loadPresetExperiment('semantic-drift')">
+                <div>
+                  <div style="font-weight:600; font-size:13px;">🐈 Semantic Clustering</div>
+                  <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Compare "cat", "kitten", "car", and "automobile".</div>
+                </div>
+              </button>
+              <button class="btn btn-secondary" style="justify-content: flex-start; text-align:left; padding:12px;" onclick="loadPresetExperiment('subword-split')">
+                <div>
+                  <div style="font-weight:600; font-size:13px;">🧩 Morphological Subwords</div>
+                  <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Unfamiliar words: "unhappiness", "transformerization".</div>
+                </div>
+              </button>
+              <button class="btn btn-secondary" style="justify-content: flex-start; text-align:left; padding:12px;" onclick="loadPresetExperiment('attention-coref')">
+                <div>
+                  <div style="font-weight:600; font-size:13px;">🔗 Coreference Attention</div>
+                  <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">"The animal didn't cross the street because it was tired".</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             SECTION 2: TOKENIZER LAB
+             ================================================================ -->
+        <section class="view-section" id="sec-tokenizer">
+          <div class="section-header">
+            <div class="section-tag"><i data-lucide="scissors" style="width:12px;height:12px;"></i> Tokenizer Engine</div>
+            <h1 class="section-title">Byte Pair Encoding (BPE) Tokenizer Lab</h1>
+            <p class="section-desc">
+              Tokenization is the foundational translation layer that converts raw text into numerical discrete symbols. Train merge rules on a custom corpus and tokenize arbitrary text in real-time.
+            </p>
+          </div>
+
+          <!-- Training & Vocab Builder Controls -->
+          <div class="card" style="margin-bottom: 20px;">
+            <div class="card-title">
+              <i data-lucide="sliders"></i>
+              <span>Tokenizer Training Corpus & Target Vocabulary Size</span>
+            </div>
+            <div class="input-group">
+              <label class="input-label">
+                <span>Training Corpus (Sentences used to learn character pair merges):</span>
+                <span class="input-hint">Edit or add lines to re-train</span>
+              </label>
+              <textarea class="form-control" id="tokenizer-training-corpus" rows="3">the cat sat on the mat.
+the dog chased the cat.
+transformers learn representations using self attention.
+deep neural networks generate intelligent text.</textarea>
+            </div>
+
+            <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px;">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <label style="font-size:12px; font-weight:600; color:var(--text-secondary);">Target Vocab Budget:</label>
+                <input type="range" id="vocab-size-slider" min="30" max="120" value="65" style="width:160px;">
+                <span id="vocab-size-label" style="font-family:var(--font-mono); font-size:13px; font-weight:600; color:var(--cyan-400);">65</span>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-secondary btn-sm" id="btn-reset-tokenizer-corpus">Default Corpus</button>
+                <button class="btn btn-primary btn-sm" id="btn-rebuild-tokenizer">
+                  <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i>
+                  <span>Train BPE Model</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Input and Tokenization Visualizer -->
+          <div class="grid-2" style="margin-bottom: 20px;">
+            <!-- Left: Text Input -->
+            <div class="card">
+              <div class="card-title">
+                <i data-lucide="type"></i>
+                <span>Input Text to Tokenize</span>
+              </div>
+              <div class="preset-container">
+                <span style="font-size:11px; color:var(--text-muted); align-self:center;">Presets:</span>
+                <span class="preset-chip" onclick="setTokenizerInput('The cat sat on the mat peacefully.')">Common Animals</span>
+                <span class="preset-chip" onclick="setTokenizerInput('Transformers utilize self-attention mechanisms.')">AI Concepts</span>
+                <span class="preset-chip" onclick="setTokenizerInput('function computeEmbedding(text) { return vector; }')">Code Snippet</span>
+                <span class="preset-chip" onclick="setTokenizerInput('supercalifragilisticexpialidocious unfriendliness')">Rare / Compound</span>
+              </div>
+
+              <textarea class="form-control" id="tokenizer-input-text" rows="4" placeholder="Enter custom sentence...">The transformer architecture processes input tokens using self attention.</textarea>
+
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+                <span id="input-stats-chars" style="font-size:12px; font-family:var(--font-mono); color:var(--text-muted);">0 characters</span>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn btn-secondary btn-sm" id="btn-clear-tokenizer-input">Clear</button>
+                  <button class="btn btn-primary btn-sm" id="btn-run-tokenizer">Tokenize &rarr;</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Token Inspector Details -->
+            <div class="card">
+              <div class="card-title">
+                <i data-lucide="info"></i>
+                <span>Token Inspector</span>
+              </div>
+              <div id="token-inspector-empty" style="padding:28px; text-align:center; color:var(--text-muted); font-size:13px;">
+                Click any colored token chip below to inspect its subword breakdown, byte length, and assigned integer Token ID.
+              </div>
+              <div id="token-inspector-details" style="display:none;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+                  <span id="inspector-token-badge" style="font-family:var(--font-mono); font-size:18px; font-weight:700; padding:4px 12px; border-radius:var(--radius-sm); background:var(--bg-surface-elevated); border:1px solid var(--cyan-500); color:var(--cyan-400);"></span>
+                  <span id="inspector-type-badge" class="badge" style="background:var(--bg-surface-elevated); color:var(--blue-400); font-size:11px;">Whole Word</span>
+                </div>
+                <div class="grid-2" style="gap:10px;">
+                  <div class="metric-card" style="padding:10px 14px;">
+                    <div style="font-size:11px; color:var(--text-muted);">TOKEN ID</div>
+                    <div id="inspector-token-id" class="metric-val" style="font-size:18px;">--</div>
+                  </div>
+                  <div class="metric-card" style="padding:10px 14px;">
+                    <div style="font-size:11px; color:var(--text-muted);">SEQUENCE POS</div>
+                    <div id="inspector-token-pos" class="metric-val" style="font-size:18px; color:var(--violet-400);">--</div>
+                  </div>
+                  <div class="metric-card" style="padding:10px 14px;">
+                    <div style="font-size:11px; color:var(--text-muted);">CHAR LENGTH</div>
+                    <div id="inspector-token-len" class="metric-val" style="font-size:18px; color:var(--emerald-400);">--</div>
+                  </div>
+                  <div class="metric-card" style="padding:10px 14px;">
+                    <div style="font-size:11px; color:var(--text-muted);">BYTE ESTIMATE</div>
+                    <div id="inspector-token-bytes" class="metric-val" style="font-size:18px; color:var(--amber-400);">--</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Token Output Visual Display -->
+          <div class="card" style="margin-bottom: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <div class="card-title" style="margin-bottom:0;">
+                <i data-lucide="layers"></i>
+                <span>Generated Tokens (<span id="token-count-pill" style="color:var(--cyan-400);">0 tokens</span>)</span>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-secondary btn-sm" id="btn-copy-tokens">
+                  <i data-lucide="copy" style="width:12px;height:12px;"></i>
+                  <span>Copy Token IDs</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="token-display-box" id="token-chips-wrapper">
+              <!-- Rendered token chips -->
+            </div>
+
+            <div style="margin-top:14px; display:flex; flex-wrap:wrap; gap:16px; font-size:12px; color:var(--text-secondary); border-top:1px solid var(--border-subtle); padding-top:12px;">
+              <div><strong>Token IDs:</strong> <span id="token-ids-sequence" style="font-family:var(--font-mono); color:var(--cyan-400);">[]</span></div>
+              <div style="margin-left:auto;"><strong>Compression Ratio:</strong> <span id="compression-ratio-stat" style="font-family:var(--font-mono); color:var(--emerald-400);">0.00 chars/token</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             SECTION 3: VOCABULARY EXPLORER
+             ================================================================ -->
+        <section class="view-section" id="sec-vocabulary">
+          <div class="section-header">
+            <div class="section-tag"><i data-lucide="book-open" style="width:12px;height:12px;"></i> Dictionary Lookup</div>
+            <h1 class="section-title">Vocabulary & Merges Explorer</h1>
+            <p class="section-desc">
+              Browse the complete vocabulary generated by the tokenizer model. Inspect frequencies, rank, subword prefix flags, and learned BPE merge operations.
+            </p>
+          </div>
+
+          <!-- Quick Stats Row -->
+          <div class="grid-4" style="margin-bottom: 20px;">
+            <div class="metric-card">
+              <div class="metric-val" id="vocab-stat-total">0</div>
+              <div class="metric-label">Total Vocab Size</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-val" id="vocab-stat-base-chars" style="color:var(--blue-400);">0</div>
+              <div class="metric-label">Base Characters</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-val" id="vocab-stat-merges" style="color:var(--violet-400);">0</div>
+              <div class="metric-label">Learned Merges</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-val" id="vocab-stat-avg-len" style="color:var(--emerald-400);">0.0</div>
+              <div class="metric-label">Avg Token Length</div>
+            </div>
+          </div>
+
+          <!-- Filter & Search Controls -->
+          <div class="card">
+            <div style="display:flex; flex-wrap:wrap; gap:12px; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <div style="display:flex; gap:10px; flex:1; max-width:400px;">
+                <input type="text" class="form-control" id="vocab-search-input" placeholder="Search tokens by text or ID...">
+              </div>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <select class="form-control" id="vocab-filter-type" style="width:140px;">
+                  <option value="all">All Types</option>
+                  <option value="base">Base Chars</option>
+                  <option value="merged">BPE Merges</option>
+                  <option value="special">Special Tokens</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" id="btn-export-vocab-json">
+                  <i data-lucide="download" style="width:13px;height:13px;"></i>
+                  <span>Export JSON</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table class="data-table" id="vocab-table">
+                <thead>
+                  <tr>
+                    <th data-sort="id">Token ID &uarr;&darr;</th>
+                    <th data-sort="text">Token String &uarr;&darr;</th>
+                    <th data-sort="type">Type</th>
+                    <th data-sort="length">Length &uarr;&darr;</th>
+                    <th data-sort="freq">Training Freq &uarr;&darr;</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="vocab-table-body">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             SECTION 4: EMBEDDING STUDIO
+             ================================================================ -->
+        <section class="view-section" id="sec-embeddings">
+          <div class="section-header">
+            <div class="section-tag"><i data-lucide="binary" style="width:12px;height:12px;"></i> Dense Numerical Representation</div>
+            <h1 class="section-title">Embedding Studio</h1>
+            <p class="section-desc">
+              Tokens and sentences are mapped to high-dimensional continuous vectors ($d \in \mathbb{R}^n$). Inspect dense coordinates, L2 norms, min/max distributions, and compare word vs sentence representations.
+            </p>
+          </div>
+
+          <div class="grid-2" style="margin-bottom: 20px;">
+            <!-- Left: Config & Input list -->
+            <div class="card">
+              <div class="card-title">
+                <i data-lucide="settings"></i>
+                <span>Embedding Model Configuration</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:14px; margin-bottom:16px;">
+                <label style="font-size:12px; font-weight:600; color:var(--text-secondary);">Vector Dimensions ($d$):</label>
+                <select class="form-control" id="embedding-dim-select" style="width:120px;">
+                  <option value="8">8-dim</option>
+                  <option value="16" selected>16-dim</option>
+                  <option value="32">32-dim</option>
+                  <option value="64">64-dim</option>
+                </select>
+                <span class="badge" style="color:var(--text-muted);">Deterministic Latent Space</span>
+              </div>
+
+              <div class="input-group">
+                <label class="input-label">Select or Enter Sentence:</label>
+                <div class="preset-container">
+                  <span class="preset-chip" onclick="setEmbeddingInput('The intelligent robot solved the complex puzzle.')">AI & Robotics</span>
+                  <span class="preset-chip" onclick="setEmbeddingInput('The playful puppy ran through the grassy meadow.')">Animals & Nature</span>
+                  <span class="preset-chip" onclick="setEmbeddingInput('Quantum computers manipulate atomic qubits.')">Physics & Tech</span>
+                  <span class="preset-chip" onclick="setEmbeddingInput('Delicious warm apple pie with vanilla ice cream.')">Food & Sweet</span>
+                </div>
+                <textarea class="form-control" id="embedding-input-sentence" rows="3">The intelligent robot solved the complex puzzle.</textarea>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button class="btn btn-primary btn-sm" id="btn-generate-embedding">
+                  <i data-lucide="cpu" style="width:13px;height:13px;"></i>
+                  <span>Compute Dense Vector</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Right: Stats & Vector Norm -->
+            <div class="card">
+              <div class="card-title">
+                <i data-lucide="activity"></i>
+                <span>Vector Properties & Mathematical Norms</span>
+              </div>
+              <div class="grid-2" style="gap:12px; margin-bottom:14px;">
+                <div class="metric-card">
+                  <div class="metric-val" id="emb-stat-dim">16</div>
+                  <div class="metric-label">Dimensionality ($d$)</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-val" id="emb-stat-norm" style="color:var(--violet-400);">1.000</div>
+                  <div class="metric-label">L2 Norm ($\|v\|_2$)</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-val" id="emb-stat-min" style="color:var(--rose-400);">-0.35</div>
+                  <div class="metric-label">Minimum Value</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-val" id="emb-stat-max" style="color:var(--emerald-400);">+0.42</div>
+                  <div class="metric-label">Maximum Value</div>
+                </div>
+              </div>
+              <div style="font-size:11.5px; color:var(--text-muted); line-height:1.5;">
+                <i data-lucide="check-circle" style="width:12px;height:12px;display:inline-block;vertical-align:middle;color:var(--cyan-400);"></i>
+                Vectors are normalized to unit length so that the dot product directly equals cosine similarity ($\mathbf{u} \cdot \mathbf{v} = \cos \theta$).
+              </div>
+            </div>
+          </div>
+
+          <!-- Vector Heatmap Visualizer -->
+          <div class="card" style="margin-bottom: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <div class="card-title" style="margin-bottom:0;">
+                <i data-lucide="bar-chart-2"></i>
+                <span>Vector Heatmap & Numerical Coordinates</span>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="btn-copy-vector-raw">
+                <i data-lucide="copy" style="width:12px;height:12px;"></i>
+                <span>Copy Array</span>
+              </button>
+            </div>
+
+            <div class="vector-bar" id="vector-heatmap-cells">
+              <!-- Cells populated by JS -->
+            </div>
+
+            <!-- Vector Numbers Raw Code Block -->
+            <div style="margin-top:14px;">
+              <pre class="form-control" id="vector-raw-display" style="max-height:100px; overflow-y:auto; font-family:var(--font-mono); font-size:12px; color:var(--cyan-400);"></pre>
+            </div>
+          </div>
+
+          <!-- Word vs Sentence Comparison -->
+          <div class="card">
+            <div class="card-title">
+              <i data-lucide="git-commit"></i>
+              <span>Word vs. Sentence Representation Pooling</span>
+            </div>
+            <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">
+              How are whole sentence embeddings formed? In modern LLMs, sentence representations emerge from contextual token embeddings pooled together (mean pooling or CLS token extraction).
+            </p>
+            <div id="word-token-vectors-list" style="display:flex; flex-direction:column; gap:10px;">
+              <!-- Generated tokens and their respective vectors -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             SECTION 5: 3D VECTOR SPACE EXPLORER
+             ================================================================ -->
+        <section class="view-section" id="sec-vector-space">
+          <div class="section-header">
+            <div class="section-tag"><i data-lucide="box" style="width:12px;height:12px;"></i> Three.js Spatial Engine</div>
+            <h1 class="section-title">Interactive 3D Vector Space Explorer</h1>
+            <p class="section-desc">
+              Visualize semantic embeddings as points positioned in continuous geometric 3D space. Drag to rotate, scroll to zoom, and right-click drag to pan. Add your own sentences to plot in real-time.
+            </p>
+          </div>
+
+          <!-- 3D Canvas Box -->
+          <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 20px;">
+            <div id="vector-3d-canvas-container">
+              <!-- Hover Tooltip -->
+              <div id="point-hover-tooltip"></div>
+
+              <!-- Top Left Legend & Info -->
+              <div class="canvas-overlay-ui">
+                <div style="background:rgba(14, 19, 31, 0.85); backdrop-filter:blur(8px); padding:10px 14px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); font-size:11px;">
+                  <div style="font-weight:700; color:var(--text-primary); margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="compass" style="width:13px;height:13px;color:var(--cyan-400);"></i>
+                    <span>Axes: X (Red), Y (Green), Z (Blue)</span>
+                  </div>
+                  <div style="color:var(--text-muted);">Points Placed: <span id="canvas-point-count" style="color:var(--cyan-400);font-weight:600;">0</span></div>
+                </div>
+              </div>
+
+              <!-- Bottom Controls -->
+              <div class="canvas-controls-bottom">
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  <button class="btn btn-secondary btn-sm" id="btn-toggle-auto-rotate">
+                    <i data-lucide="rotate-cw" style="width:12px;height:12px;"></i>
+                    <span>Auto Rotate: ON</span>
+                  </button>
+                  <button class="btn btn-secondary btn-sm" id="btn-reset-3d-camera">
+                    <i data-lucide="maximize" style="width:12px;height:12px;"></i>
+                    <span>Reset View</span>
+                  </button>
+                </div>
+
+                <div style="display:flex; gap:6px;">
+                  <button class="btn btn-secondary btn-sm" id="btn-reset-default-3d-points">
+                    <i data-lucide="refresh-cw" style="width:12px;height:12px;"></i>
+                    <span>Reset Points</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Controls for Adding Points & Filtering Categories -->
+          <div class="grid-2">
+            <!-- Add New Custom Point -->
+            <div class="card">
+              <div class="card-title">
+                <i data-lucide="plus-circle"></i>
+                <span>Add Custom Sentence or Word to 3D Space</span>
+              </div>
+              <div style="display:flex; gap:10px; margin-bottom:12px;">
+                <input type="text" class="form-control" id="custom-3d-text-input" placeholder="e.g. Electric sports car, Golden retriever, Neural optimizer...">
+                <select class="form-control" id="custom-3d-category-select" style="width:150px;">
+                  <option value="Technology">Technology</option>
+                  <option value="Animals">Animals</option>
+                  <option value="Food">Food</option>
+                  <option value="Programming">Programming</option>
+                  <option value="Emotions">Emotions</option>
+                  <option value="Transportation">Transportation</option>
+                </select>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btn-add-3d-point" style="width:100%;">
+                <i data-lucide="plus" style="width:13px;height:13px;"></i>
+                <span>Embed & Project to 3D</span>
+              </button>
+            </div>
+
+            <!-- Categories Legend and Filter Toggles -->
+            <div class="card">
+              <div class="card-title">
+                <i data-lucide="tag"></i>
+                <span>Semantic Clusters & Legend</span>
+              </div>
+              <div id="category-legend-list" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:8px;">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             SECTION 6: SIMILARITY ANALYZER
+             ================================================================ -->
+        <section class="view-section" id="sec-similarity">
+          <div class="section-header">
+            <div class="section-tag"><i data-lucide="git-compare" style="width:12px;height:12px;"></i> Vector Geometry</div>
+            <h1 class="section-title">Semantic Cosine Similarity Analyzer</h1>
+            <p class="section-desc">
+              Compare semantic proximity using cosine similarity. Explore how the angle between vectors quantifies semantic relatedness, from complete alignment ($\cos = 1.0$) to orthogonality ($\cos = 0.0$).
+            </p>
+          </div>
+
+          <!-- Two-Input Comparison Playground -->
+          <div class="card" style="margin-bottom: 24px;">
+            <div class="card-title">
+              <i data-lucide="sliders"></i>
+              <span>Pairwise Sentence Comparison</span>
+            </div>
+
+            <!-- Presets -->
+            <div class="preset-container">
+              <span style="font-size:11px; color:var(--text-muted); align-self:center;">Preset Comparisons:</span>
+              <span class="preset-chip" onclick="setSimilarityPair('The cat is sleeping on the couch.', 'A kitten is resting peacefully.')">Synonymous Animal</span>
+              <span class="preset-chip" onclick="setSimilarityPair('Machine learning models process neural embeddings.', 'Deep learning trains neural networks on tensors.')">AI & ML (Close)</span>
+              <span class="preset-chip" onclick="setSimilarityPair('The chef baked a fresh loaf of sourdough bread.', 'Rocket engines ignite liquid propellant into orbit.')">Dissimilar Topics</span>
+              <span class="preset-chip" onclick="setSimilarityPair('She is overjoyed and ecstatic with joy.', 'He feels desolate, gloomy, and depressed.')">Opposite Emotions</span>
+            </div>
+
+            <div class="grid-2" style="margin-bottom: 16px;">
+              <div class="input-group">
+                <label class="input-label" style="color:var(--cyan-400);">Sentence A:</label>
+                <textarea class="form-control" id="sim-text-a" rows="3">The cat is sleeping on the couch.</textarea>
+              </div>
+              <div class="input-group">
+                <label class="input-label" style="color:var(--violet-400);">Sentence B:</label>
+                <textarea class="form-control" id="sim-text-b" rows="3">A kitten is resting peacefully.</textarea>
+              </div>
+            </div>
+
+            <!-- Results & Gauge Meter -->
+            <div class="grid-2" style="background:var(--bg-input); padding:20px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); align-items:center;">
+              <div>
+                <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted);">Cosine Similarity Score</div>
+                <div style="display:flex; align-items:baseline; gap:10px; margin:6px 0;">
+                  <span id="similarity-score-value" style="font-family:var(--font-mono); font-size:42px; font-weight:800; color:var(--cyan-400);">0.892</span>
+                  <span id="similarity-score-verdict" class="badge" style="background:rgba(16, 185, 129, 0.15); color:var(--emerald-400); font-size:12px;">High Semantic Proximity</span>
+                </div>
+
+                <!-- Progress Bar Meter -->
+                <div style="height:10px; width:100%; background:var(--bg-surface-elevated); border-radius:9999px; overflow:hidden; margin:12px 0;">
+                  <div id="similarity-meter-bar" style="height:100%; width:89.2%; background:linear-gradient(90deg, var(--blue-500), var(--cyan-400)); transition:width 0.4s ease;"></div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; font-size:11px; font-family:var(--font-mono); color:var(--text-muted);">
+                  <span>-1.0 (Opposite)</span>
+                  <span>0.0 (Orthogonal)</span>
+                  <span>+1.0 (Identical)</span>
+                </div>
+              </div>
+
+              <!-- Mathematical Breakdown Box -->
+              <div style="border-left:1px solid var(--border-subtle); padding-left:24px;">
+                <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">Mathematical Formula & Steps:</div>
+                <div class="math-block" style="margin:4px 0 10px; font-size:12px;">
+                  \cos(\theta) = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\|_2 \|\mathbf{v}\|_2}
+                </div>
+                <div style="font-size:11.5px; color:var(--text-muted); line-height:1.6; font-family:var(--font-mono);">
+                  <div>&bull; Dot Product: <span id="math-dot-val" style="color:var(--text-primary);">0.892</span></div>
+                  <div>&bull; Norm A (||u||): <span id="math-norm-a" style="color:var(--cyan-400);">1.000</span></div>
+                  <div>&bull; Norm B (||v||): <span id="math-norm-b" style="color:var(--violet-400);">1.000</span></div>
+                  <div>&bull; Spatial Angle: &theta; &approx; <span id="math-angle-deg" style="color:var(--amber-400);">26.8&deg;</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Multi-Sentence Similarity Matrix Heatmap -->
+          <div class="card">
+            <div class="card-title">
+              <i data-lucide="grid"></i>
+              <span>NxN Similarity Heatmap Matrix</span>
+            </div>
+            <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">
+              Cross-comparison matrix evaluating all sentence combinations. Darker cyan indicates higher correlation.
+            </p>
+            <div class="table-container" style="max-height:400px; overflow-y:auto;">
+              <table class="data-table" id="similarity-matrix-table" style="text-align:center;">
+                <!-- Populated by JS -->
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             SECTION 7: ATTENTION VISUALIZER
+             ================================================================ -->
+        <section class="view-section" id="sec-attention">
+          <div class="section-header">
+            <div class="section-tag"><i data-lucide="network" style="width:12px;height:12px;"></i> Transformer Core</div>
+            <h1 class="section-title">Multi-Head Self-Attention Visualizer</h1>
+            <p class="section-desc">
+              Self-attention allows every token in a sequence to dynamically weigh and absorb information from all other tokens. Explore Query, Key, and Value projections and switch between attention heads.
+            </p>
+          </div>
+
+          <!-- Sentence Selection & Attention Head Selector -->
+          <div class="card" style="margin-bottom: 20px;">
+            <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:14px; margin-bottom:14px;">
+              <div class="card-title" style="margin-bottom:0;">
+                <i data-lucide="layers"></i>
+                <span>Attention Head Selection</span>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-secondary btn-sm attention-head-btn active" data-head="0">Head 1: Syntactic (Next)</button>
+                <button class="btn btn-secondary btn-sm attention-head-btn" data-head="1">Head 2: Semantic Core</button>
+                <button class="btn btn-secondary btn-sm attention-head-btn" data-head="2">Head 3: Positional</button>
+                <button class="btn btn-secondary btn-sm attention-head-btn" data-head="3">Head 4: Broad / Global</button>
+              </div>
+            </div>
+
+            <div class="preset-container">
+              <span style="font-size:11px; color:var(--text-muted); align-self:center;">Presets:</span>
+              <span class="preset-chip" onclick="setAttentionSentence('The animal didn\'t cross the street because it was tired.')">Winograd Schema</span>
+              <span class="preset-chip" onclick="setAttentionSentence('Transformers process all tokens simultaneously using multi head attention.')">Architecture</span>
+              <span class="preset-chip" onclick="setAttentionSentence('The programmer wrote Python code that debugged itself.')">Coding Action</span>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+              <input type="text" class="form-control" id="attention-sentence-input" value="The animal didn't cross the street because it was tired.">
+              <button class="btn btn-primary btn-sm" id="btn-recompute-attention">
+                <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i>
+                <span>Compute Attention</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Interactive Node-Link Attention Graph Canvas -->
+          <div class="grid-2" style="margin-bottom: 20px;">
+            <div class="card">
+              <div class="card-title">
+                <i data-lucide="share-2"></i>
+                <span>Token Attention Connections</span>
+              </div>
+              <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+                Click any token to isolate its outgoing attention weights to all other tokens:
+              </p>
+
+              <div id="attention-tokens-node-list" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
+                <!-- Token pill nodes -->
+              </div>
+
+              <!-- Canvas for interactive connecting arcs -->
+              <div style="position:relative; width:100%; height:260px; background:var(--bg-input); border-radius:var(--radius-md); border:1px solid var(--border-subtle); overflow:hidden;">
+                <canvas id="attention-arc-canvas" width="600" height="260" style="width:100%; height:100%;"></canvas>
+              </div>
+            </div>
+
+            <!-- Attention Heatmap Matrix -->
+            <div class="card">
+              <div class="card-title">
+                <i data-lucide="layout-grid"></i>
+                <span>Attention Heatmap ($\text{Softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)$)</span>
+              </div>
+              <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+                Row token attends to Column token. Hover cells to see exact numerical probability:
+              </p>
+              <div class="table-container" style="max-height:300px; overflow:auto;">
+                <table class="data-table" id="attention-heatmap-table" style="font-size:11px; text-align:center;">
+                  <!-- Populated by JS -->
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Q, K, V Theoretical Concept Cards -->
+          <div class="card">
+            <div class="card-title">
+              <i data-lucide="help-circle"></i>
+              <span>Intuitive Analogy: Query, Key, and Value ($Q, K, V$)</span>
+            </div>
+            <div class="grid-3" style="gap:14px; margin-top:10px;">
+              <div class="metric-card">
+                <div style="font-weight:700; color:var(--cyan-400); margin-bottom:4px; font-size:14px;">Query ($Q$)</div>
+                <div style="font-size:12px; color:var(--text-secondary); line-height:1.6;">
+                  What the current token is looking for. Represents an information request sent to all tokens in the context.
+                </div>
+              </div>
+              <div class="metric-card">
+                <div style="font-weight:700; color:var(--violet-400); margin-bottom:4px; font-size:14px;">Key ($K$)</div>
+                <div style="font-size:12px; color:var(--text-secondary); line-height:1.6;">
+                  What information each token offers. The dot product $Q \cdot K^T$ calculates how well the Query matches the Key.
+                </div>
+              </div>
+              <div class="metric-card">
+                <div style="font-weight:700; color:var(--emerald-400); margin-bottom:4px; font-size:14px;">Value ($V$)</div>
+                <div style="font-size:12px; color:var(--text-secondary); line-height:1.6;">
+                  The actual semantic content extracted and blended together in proportion to the calculated attention weights.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             SECTION 8: PIPELINE PLAYGROUND (END-TO-END)
+             ================================================================ -->
+        <section class="view-section" id="sec-pipeline">
+          <div class="section-header">
+            <div class="section-tag"><i data-lucide="play-circle" style="width:12px;height:12px;"></i> Step-by-Step Simulator</div>
+            <h1 class="section-title">End-to-End LLM Pipeline Playground</h1>
+            <p class="section-desc">
+              Execute a simulated end-to-end forward pass. Step through Tokenization, Embedding Projection, Positional Encoding, Multi-Head Attention, and Next-Token Logits generation.
+            </p>
+          </div>
+
+          <!-- Stepper Navigation Header -->
+          <div class="pipeline-stepper" id="pipeline-stepper-ui">
+            <div class="pipeline-step-item active" data-step="1" onclick="jumpToPipelineStep(1)">
+              <div class="step-circle">1</div>
+              <div class="step-label">Input Text</div>
+            </div>
+            <div class="pipeline-step-item" data-step="2" onclick="jumpToPipelineStep(2)">
+              <div class="step-circle">2</div>
+              <div class="step-label">Tokenize</div>
+            </div>
+            <div class="pipeline-step-item" data-step="3" onclick="jumpToPipelineStep(3)">
+              <div class="step-circle">3</div>
+              <div class="step-label">Token IDs</div>
+            </div>
+            <div class="pipeline-step-item" data-step="4" onclick="jumpToPipelineStep(4)">
+              <div class="step-circle">4</div>
+              <div class="step-label">Embeddings</div>
+            </div>
+            <div class="pipeline-step-item" data-step="5" onclick="jumpToPipelineStep(5)">
+              <div class="step-circle">5</div>
+              <div class="step-label">Attention</div>
+            </div>
+            <div class="pipeline-step-item" data-step="6" onclick="jumpToPipelineStep(6)">
+              <div class="step-circle">6</div>
+              <div class="step-label">Output Logits</div>
+            </div>
+          </div>
+
+          <!-- Pipeline Step Content Box -->
+          <div class="card" style="margin-bottom: 20px; min-height:360px;">
+            <!-- Step 1: Input -->
+            <div class="pipeline-step-pane active" id="pipe-pane-1">
+              <div class="card-title">
+                <i data-lucide="edit-3"></i>
+                <span>Step 1: Raw Prompt Input</span>
+              </div>
+              <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">
+                Enter a starting prompt for the LLM to process:
+              </p>
+              <textarea class="form-control" id="pipe-input-prompt" rows="3">The quick brown fox jumps over the lazy</textarea>
+              <div class="preset-container" style="margin-top:10px;">
+                <span class="preset-chip" onclick="setPipePrompt('The quick brown fox jumps over the lazy')">Pangram Continuation</span>
+                <span class="preset-chip" onclick="setPipePrompt('Artificial intelligence will transform modern')">AI Future</span>
+                <span class="preset-chip" onclick="setPipePrompt('To be or not to be, that is the')">Shakespeare</span>
+              </div>
+            </div>
+
+            <!-- Step 2: Tokens -->
+            <div class="pipeline-step-pane" id="pipe-pane-2" style="display:none;">
+              <div class="card-title">
+                <i data-lucide="scissors"></i>
+                <span>Step 2: Subword Token Split</span>
+              </div>
+              <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">
+                The text is partitioned into vocabulary subword tokens:
+              </p>
+              <div class="token-display-box" id="pipe-tokens-container"></div>
+            </div>
+
+            <!-- Step 3: IDs -->
+            <div class="pipeline-step-pane" id="pipe-pane-3" style="display:none;">
+              <div class="card-title">
+                <i data-lucide="hash"></i>
+                <span>Step 3: Discrete Integer Token IDs</span>
+              </div>
+              <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">
+                Each token is mapped to its unique index in the model's vocabulary matrix:
+              </p>
+              <div id="pipe-ids-container" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+            </div>
+
+            <!-- Step 4: Embeddings + Positional -->
+            <div class="pipeline-step-pane" id="pipe-pane-4" style="display:none;">
+              <div class="card-title">
+                <i data-lucide="binary"></i>
+                <span>Step 4: Token Embedding + Positional Encoding Vector</span>
+              </div>
+              <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">
+                $E_{input} = E_{token} + P_{position}$. Transformer tokens obtain numerical coordinates enriched with order information:
+              </p>
+              <div id="pipe-embeddings-container" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+
+            <!-- Step 5: Attention Output -->
+            <div class="pipeline-step-pane" id="pipe-pane-5" style="display:none;">
+              <div class="card-title">
+                <i data-lucide="network"></i>
+                <span>Step 5: Multi-Head Attention Context Blending</span>
+              </div>
+              <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">
+                Tokens exchange contextual information. Notice how the final token accumulates context from preceding tokens:
+              </p>
+              <div id="pipe-attention-container" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+
+            <!-- Step 6: Logits & Output -->
+            <div class="pipeline-step-pane" id="pipe-pane-6" style="display:none;">
+              <div class="card-title">
+                <i data-lucide="bar-chart"></i>
+                <span>Step 6: Vocabulary Logits & Next-Token Sampling Distribution</span>
+              </div>
+              <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">
+                The linear output head un-embeds the final hidden state to logits over the entire vocabulary, followed by $\text{Softmax}$:
+              </p>
+              
+              <div style="background:var(--bg-input); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); margin-bottom:14px;">
+                <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:600;">Predicted Next Token Candidate</div>
+                <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
+                  <span id="pipe-top-prediction" style="font-family:var(--font-mono); font-size:26px; font-weight:800; color:var(--emerald-400);">"dog"</span>
+                  <span id="pipe-top-prob" class="badge" style="background:rgba(16, 185, 129, 0.2); color:var(--emerald-400);">92.4% Probability</span>
+                </div>
+              </div>
+
+              <!-- Top-5 Probability Candidates Bar Chart -->
+              <div id="pipe-top5-bars" style="display:flex; flex-direction:column; gap:8px;">
+                <!-- Bar rows -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Pipeline Controls Bottom Bar -->
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <button class="btn btn-secondary" id="btn-pipe-prev" disabled>
+              <i data-lucide="chevron-left"></i>
+              <span>Previous Step</span>
+            </button>
+            <div style="display:flex; gap:10px;">
+              <button class="btn btn-secondary" id="btn-pipe-reset">Reset Pipeline</button>
+              <button class="btn btn-primary" id="btn-pipe-run-all">
+                <i data-lucide="play" style="width:14px;height:14px;"></i>
+                <span>Run Entire Pipeline</span>
+              </button>
+              <button class="btn btn-primary" id="btn-pipe-next">
+                <span>Next Step</span>
+                <i data-lucide="chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             SECTION 9: LEARN & CONCEPTS
+             ================================================================ -->
+        <section class="view-section" id="sec-concepts">
+          <div class="section-header">
+            <div class="section-tag"><i data-lucide="graduation-cap" style="width:12px;height:12px;"></i> AI Curriculum</div>
+            <h1 class="section-title">Foundational Concepts & Theory</h1>
+            <p class="section-desc">
+              Explore the mathematical underpinnings, algorithmic breakthroughs, and intuitive explanations behind modern Large Language Models and Transformers.
+            </p>
+          </div>
+
+          <!-- Interactive Accordions -->
+          <div class="concept-card open">
+            <div class="concept-header">
+              <div style="font-weight:700; font-size:16px; color:var(--text-primary); display:flex; align-items:center; gap:10px;">
+                <i data-lucide="cpu" style="width:18px;height:18px;color:var(--cyan-400);"></i>
+                <span>1. What is a Large Language Model (LLM)?</span>
+              </div>
+              <i data-lucide="chevron-down" style="width:16px;height:16px;color:var(--text-muted);"></i>
+            </div>
+            <div class="concept-body">
+              A Large Language Model is fundamentally a next-token probability estimator trained on vast textual datasets. Given an arbitrary sequence of tokens $x_1, x_2, \dots, x_t$, the model learns parameters $\theta$ to optimize:
+              <div class="math-block">
+                P(x_{t+1} \mid x_1, x_2, \dots, x_t; \theta)
+              </div>
+              By learning to predict the next token with high fidelity across billions of web documents, books, and code repositories, the network implicitly develops complex internal representations of syntax, reasoning, semantics, and world knowledge.
+            </div>
+          </div>
+
+          <div class="concept-card">
+            <div class="concept-header">
+              <div style="font-weight:700; font-size:16px; color:var(--text-primary); display:flex; align-items:center; gap:10px;">
+                <i data-lucide="scissors" style="width:18px;height:18px;color:var(--cyan-400);"></i>
+                <span>2. Why Tokenization & Byte Pair Encoding (BPE)?</span>
+              </div>
+              <i data-lucide="chevron-down" style="width:16px;height:16px;color:var(--text-muted);"></i>
+            </div>
+            <div class="concept-body">
+              Computers cannot natively read characters or words as strings. We could split text by words (word-level), but that creates an infinitely growing vocabulary with Out-Of-Vocabulary (OOV) errors for new words. We could also split by characters (character-level), but that causes sequences to become extremely long, requiring immense compute.
+              <br><br>
+              <strong>Byte Pair Encoding (BPE)</strong> offers the optimal compromise:
+              <ul style="margin-left:24px; margin-top:8px;">
+                <li>Frequent full words remain single whole tokens (e.g., <code>"the"</code>, <code>" cat"</code>).</li>
+                <li>Rare or unknown words are decomposed into familiar subword pieces (e.g., <code>"un" + "friend" + "liness"</code>).</li>
+                <li>Arbitrary Unicode bytes ensure zero OOV errors while maintaining compact sequence lengths.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="concept-card">
+            <div class="concept-header">
+              <div style="font-weight:700; font-size:16px; color:var(--text-primary); display:flex; align-items:center; gap:10px;">
+                <i data-lucide="binary" style="width:18px;height:18px;color:var(--cyan-400);"></i>
+                <span>3. High-Dimensional Vector Embeddings & Vector Space</span>
+              </div>
+              <i data-lucide="chevron-down" style="width:16px;height:16px;color:var(--text-muted);"></i>
+            </div>
+            <div class="concept-body">
+              Once tokenized into discrete integer IDs ($[42, 1083, 7]$), each ID is looked up in a continuous embedding table $W_E \in \mathbb{R}^{V \times d_{model}}$.
+              <div class="math-block">
+                \mathbf{e}_i = \text{EmbeddingLookup}(\text{TokenID}_i)
+              </div>
+              In this continuous $d$-dimensional space (e.g. $d=4096$ in LLaMA-3), geometrical proximity corresponds to semantic proximity:
+              <ul style="margin-left:24px; margin-top:8px;">
+                <li>Words with similar meanings cluster together (e.g., <em>dog</em> and <em>puppy</em>).</li>
+                <li>Directions encode conceptual relationships: $\mathbf{v}_{\text{King}} - \mathbf{v}_{\text{Man}} + \mathbf{v}_{\text{Woman}} \approx \mathbf{v}_{\text{Queen}}$.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="concept-card">
+            <div class="concept-header">
+              <div style="font-weight:700; font-size:16px; color:var(--text-primary); display:flex; align-items:center; gap:10px;">
+                <i data-lucide="network" style="width:18px;height:18px;color:var(--cyan-400);"></i>
+                <span>4. Scaled Dot-Product Self-Attention</span>
+              </div>
+              <i data-lucide="chevron-down" style="width:16px;height:16px;color:var(--text-muted);"></i>
+            </div>
+            <div class="concept-body">
+              Introduced in the seminal paper <em>"Attention Is All You Need"</em> (Vaswani et al., 2017), the self-attention formula is:
+              <div class="math-block">
+                \text{Attention}(Q, K, V) = \text{Softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
+              </div>
+              Where:
+              <ul style="margin-left:24px; margin-top:8px;">
+                <li>$\mathbf{Q} = \mathbf{X} W_Q$: Queries (what each token is searching for).</li>
+                <li>$\mathbf{K} = \mathbf{X} W_K$: Keys (what each token advertises).</li>
+                <li>$\mathbf{V} = \mathbf{X} W_V$: Values (the contextual payload).</li>
+                <li>$\sqrt{d_k}$: Scaling factor preventing dot-product magnitudes from exploding into saturation regions of the softmax function.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="concept-card">
+            <div class="concept-header">
+              <div style="font-weight:700; font-size:16px; color:var(--text-primary); display:flex; align-items:center; gap:10px;">
+                <i data-lucide="git-compare" style="width:18px;height:18px;color:var(--cyan-400);"></i>
+                <span>5. Cosine Similarity vs. Euclidean Distance</span>
+              </div>
+              <i data-lucide="chevron-down" style="width:16px;height:16px;color:var(--text-muted);"></i>
+            </div>
+            <div class="concept-body">
+              When measuring vector similarity in high dimensions:
+              <ul style="margin-left:24px; margin-top:8px;">
+                <li><strong>Euclidean Distance ($\|\mathbf{u} - \mathbf{v}\|_2$)</strong> is sensitive to vector magnitude (document length or word frequency can artificially increase distance).</li>
+                <li><strong>Cosine Similarity ($\frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\|_2 \|\mathbf{v}\|_2}$)</strong> evaluates the angle between vectors, ignoring length. It ranges from $-1$ to $+1$, making it standard across vector databases and retrieval-augmented generation (RAG).</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       MODALS: ONBOARDING TOUR & KEYBOARD SHORTCUTS
+       ====================================================================== -->
+  <!-- Tour Modal -->
+  <div class="modal-backdrop" id="modal-tour">
+    <div class="modal-dialog">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="brand-logo" style="width:26px;height:26px;"><i data-lucide="sparkles" style="width:14px;height:14px;"></i></div>
+          <span style="font-weight:700; font-size:16px;">Welcome to LLM Pipeline Explorer</span>
+        </div>
+        <button class="btn-icon" style="width:28px;height:28px;" onclick="closeModal('modal-tour')">&times;</button>
+      </div>
+      <p style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:16px;">
+        This interactive laboratory gives you a hands-on intuition for how Large Language Models (LLMs) operate under the hood:
+      </p>
+      <div style="display:flex; flex-direction:column; gap:12px; font-size:12.5px; margin-bottom:20px;">
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+          <span class="badge" style="color:var(--cyan-400); font-size:12px;">1</span>
+          <div><strong>Tokenizer Lab:</strong> Train a real BPE algorithm on text, observe subwords, and inspect integer Token IDs.</div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+          <span class="badge" style="color:var(--blue-400); font-size:12px;">2</span>
+          <div><strong>3D Vector Space:</strong> Rotate and pan around an interactive 3D coordinate space with semantic clusters.</div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+          <span class="badge" style="color:var(--violet-400); font-size:12px;">3</span>
+          <div><strong>Attention Visualizer:</strong> See how tokens connect to one another across multiple specialized attention heads.</div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+          <span class="badge" style="color:var(--emerald-400); font-size:12px;">4</span>
+          <div><strong>Pipeline Playground:</strong> Run end-to-end forward passes from raw prompt to next-token prediction.</div>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:flex-end;">
+        <button class="btn btn-primary" onclick="closeModal('modal-tour')">Start Exploring</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div class="modal-backdrop" id="modal-shortcuts">
+    <div class="modal-dialog">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <span style="font-weight:700; font-size:16px;">Keyboard Shortcuts</span>
+        <button class="btn-icon" style="width:28px;height:28px;" onclick="closeModal('modal-shortcuts')">&times;</button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px; font-size:12.5px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border-subtle);">
+          <span>Switch to Section 1 &ndash; 9</span>
+          <span class="badge">1 &ndash; 9</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border-subtle);">
+          <span>Show Shortcuts Dialog</span>
+          <span class="badge">?</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border-subtle);">
+          <span>Close Open Modal</span>
+          <span class="badge">Esc</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border-subtle);">
+          <span>Toggle Light / Dark Mode</span>
+          <span class="badge">T</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       APPLICATION JAVASCRIPT LOGIC
+       ====================================================================== -->
+  <script>
+    /* ==========================================================================
+       GLOBAL STATE & APPLICATION CONFIG
+       ========================================================================== */
+    const AppState = {
+      theme: 'dark',
+      activeTab: 'overview',
+      // Tokenizer State
+      bpeModel: {
+        vocab: {}, // token string -> id
+        reverseVocab: {}, // id -> token string
+        merges: [], // array of [pair0, pair1]
+        freqs: {},
+        baseChars: new Set()
+      },
+      tokensGenerated: [],
+      // Embeddings State
+      currentEmbeddingDim: 16,
+      currentSentenceVector: null,
+      // 3D Vector Space State
+      threeApp: {
+        scene: null,
+        camera: null,
+        renderer: null,
+        controls: null,
+        pointsGroup: null,
+        axesHelper: null,
+        gridHelper: null,
+        autoRotate: true,
+        pointMeshes: [],
+        raycaster: null,
+        mouse: null,
+        activeData: []
+      },
+      // Attention State
+      attentionHead: 0,
+      attentionSentence: "The animal didn't cross the street because it was tired.",
+      selectedAttentionTokenIdx: 0,
+      // Pipeline State
+      pipelineCurrentStep: 1,
+      pipelineRunning: false
+    };
+
+    /* Semantic Group Colors */
+    const CATEGORY_COLORS = {
+      'Technology': { hex: '#3b82f6', three: 0x3b82f6 },
+      'Animals': { hex: '#06b6d4', three: 0x06b6d4 },
+      'Food': { hex: '#f59e0b', three: 0xf59e0b },
+      'Programming': { hex: '#8b5cf6', three: 0x8b5cf6 },
+      'Emotions': { hex: '#f43f5e', three: 0xf43f5e },
+      'Transportation': { hex: '#10b981', three: 0x10b981 }
+    };
+
+    /* Initial 3D Semantic Points */
+    const DEFAULT_3D_POINTS = [
+      { text: "cat", category: "Animals", coords: [1.8, 1.2, 0.4] },
+      { text: "kitten", category: "Animals", coords: [1.9, 1.3, 0.6] },
+      { text: "dog", category: "Animals", coords: [1.6, 1.5, -0.2] },
+      { text: "puppy", category: "Animals", coords: [1.7, 1.6, 0.0] },
+      { text: "neural network", category: "Technology", coords: [-1.8, 1.5, 1.2] },
+      { text: "transformer", category: "Technology", coords: [-1.9, 1.7, 1.4] },
+      { text: "microprocessor", category: "Technology", coords: [-1.5, 1.2, 1.0] },
+      { text: "quantum computer", category: "Technology", coords: [-1.7, 1.9, 1.6] },
+      { text: "python code", category: "Programming", coords: [-1.4, -1.2, 1.6] },
+      { text: "algorithm", category: "Programming", coords: [-1.5, -1.0, 1.4] },
+      { text: "compiler", category: "Programming", coords: [-1.2, -1.4, 1.2] },
+      { text: "pizza", category: "Food", coords: [1.2, -1.8, -1.2] },
+      { text: "pasta", category: "Food", coords: [1.4, -1.7, -1.0] },
+      { text: "warm sourdough bread", category: "Food", coords: [1.3, -1.5, -1.4] },
+      { text: "airplane", category: "Transportation", coords: [0.2, 1.8, -1.8] },
+      { text: "locomotive train", category: "Transportation", coords: [0.4, 1.5, -1.6] },
+      { text: "electric car", category: "Transportation", coords: [0.1, 1.6, -1.4] },
+      { text: "overjoyed and happy", category: "Emotions", coords: [1.5, 0.4, 1.8] },
+      { text: "desolate and depressed", category: "Emotions", coords: [-1.2, -0.6, -1.8] }
+    ];
+
+    /* ==========================================================================
+       DETERMINISTIC PSEUDO-RANDOM & HASH UTILITIES
+       ========================================================================== */
+    function stringHash(str) {
+      let hash = 5381;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) + hash) + str.charCodeAt(i);
+        hash = hash & hash;
+      }
+      return Math.abs(hash);
+    }
+
+    function generateColorForToken(tokenStr) {
+      const colors = [
+        'rgba(6, 182, 212, 0.25)',
+        'rgba(59, 130, 246, 0.25)',
+        'rgba(139, 92, 246, 0.25)',
+        'rgba(16, 185, 129, 0.25)',
+        'rgba(245, 158, 11, 0.25)',
+        'rgba(244, 63, 94, 0.25)'
+      ];
+      const borders = [
+        '#06b6d4', '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#f43f5e'
+      ];
+      const idx = stringHash(tokenStr) % colors.length;
+      return { bg: colors[idx], border: borders[idx] };
+    }
+
+    /* Deterministic Embedding Vector Generator */
+    function computeDeterministicEmbedding(text, dim = 16) {
+      const vector = new Float32Array(dim);
+      const clean = text.toLowerCase().trim();
+      const words = clean.split(/\s+/).filter(w => w.length > 0);
+
+      // Category semantic anchors
+      const semanticAnchors = {
+        animals: ["cat", "kitten", "dog", "puppy", "lion", "animal", "creature", "bird"],
+        tech: ["neural", "transformer", "computer", "algorithm", "network", "quantum", "robot", "ai", "hardware"],
+        coding: ["python", "function", "compiler", "code", "bug", "software", "variable"],
+        food: ["bread", "pie", "pizza", "apple", "ice", "cream", "pasta", "soup", "sourdough"],
+        motion: ["jumps", "ran", "car", "moving", "airplane", "speed", "train", "flight"],
+        emotions: ["happy", "overjoyed", "sad", "depressed", "peacefully", "gloomy", "tired"]
+      };
+
+      for (let d = 0; d < dim; d++) {
+        let val = 0;
+        // Character n-gram hashing
+        for (let i = 0; i < clean.length; i++) {
+          const charCode = clean.charCodeAt(i);
+          val += Math.sin((i + 1) * 1.31 + (d + 1) * 0.77 + charCode * 0.19);
+        }
+
+        // Semantic word boost
+        for (const w of words) {
+          if (semanticAnchors.animals.some(a => w.includes(a))) val += Math.sin((d + 1) * 0.8) * 2.5;
+          if (semanticAnchors.tech.some(a => w.includes(a))) val += Math.cos((d + 1) * 1.2) * 2.8;
+          if (semanticAnchors.coding.some(a => w.includes(a))) val += Math.sin((d + 1) * 1.5) * 2.4;
+          if (semanticAnchors.food.some(a => w.includes(a))) val += Math.cos((d + 1) * 0.5) * 2.6;
+          if (semanticAnchors.motion.some(a => w.includes(a))) val += Math.sin((d + 1) * 1.9) * 2.2;
+          if (semanticAnchors.emotions.some(a => w.includes(a))) val += Math.cos((d + 1) * 2.1) * 2.5;
+        }
+
+        vector[d] = val;
+      }
+
+      // L2 Normalization
+      let sumSq = 0;
+      for (let i = 0; i < dim; i++) sumSq += vector[i] * vector[i];
+      const norm = Math.sqrt(sumSq) || 1e-9;
+      for (let i = 0; i < dim; i++) vector[i] = vector[i] / norm;
+
+      return vector;
+    }
+
+    function calculateCosineSimilarity(vecA, vecB) {
+      if (vecA.length !== vecB.length) return 0;
+      let dot = 0, normA = 0, normB = 0;
+      for (let i = 0; i < vecA.length; i++) {
+        dot += vecA[i] * vecB[i];
+        normA += vecA[i] * vecA[i];
+        normB += vecB[i] * vecB[i];
+      }
+      normA = Math.sqrt(normA);
+      normB = Math.sqrt(normB);
+      if (normA === 0 || normB === 0) return 0;
+      return dot / (normA * normB);
+    }
+
+    /* ==========================================================================
+       BYTE PAIR ENCODING (BPE) TOKENIZER ALGORITHM
+       ========================================================================== */
+    function trainBPE(corpusText, targetVocabSize = 65) {
+      const vocab = {};
+      const reverseVocab = {};
+      const freqs = {};
+      const merges = [];
+      const baseChars = new Set();
+
+      // Special Tokens
+      const specialTokens = ["<PAD>", "<UNK>", "<BOS>", "<EOS>"];
+      specialTokens.forEach((tok, idx) => {
+        vocab[tok] = idx;
+        reverseVocab[idx] = tok;
+        freqs[tok] = 100;
+      });
+      let nextId = specialTokens.length;
+
+      // Extract unique characters and initial words
+      const lines = corpusText.toLowerCase().split('\n');
+      const wordCounts = {};
+
+      for (const line of lines) {
+        const words = line.trim().split(/\s+/).filter(w => w.length > 0);
+        for (const word of words) {
+          // BPE convention: append end-of-word symbol '</w>'
+          const chars = word.split('').join(' ') + ' </w>';
+          wordCounts[chars] = (wordCounts[chars] || 0) + 1;
+
+          for (const ch of word) {
+            baseChars.add(ch);
+          }
+        }
+      }
+      baseChars.add('</w>');
+
+      // Assign Base Chars to Vocab
+      Array.from(baseChars).sort().forEach(ch => {
+        if (vocab[ch] === undefined) {
+          vocab[ch] = nextId;
+          reverseVocab[nextId] = ch;
+          freqs[ch] = 50;
+          nextId++;
+        }
+      });
+
+      // Iterative BPE Merge Loop
+      let splits = { ...wordCounts };
+
+      while (nextId < targetVocabSize) {
+        // Count pair frequencies
+        const pairCounts = {};
+        for (const [w, count] of Object.entries(splits)) {
+          const symbols = w.split(' ');
+          for (let i = 0; i < symbols.length - 1; i++) {
+            const pair = symbols[i] + ' ' + symbols[i + 1];
+            pairCounts[pair] = (pairCounts[pair] || 0) + count;
+          }
+        }
+
+        // Find most frequent pair
+        let bestPair = null;
+        let maxFreq = 0;
+        for (const [pair, count] of Object.entries(pairCounts)) {
+          if (count > maxFreq) {
+            maxFreq = count;
+            bestPair = pair;
+          }
+        }
+
+        if (!bestPair || maxFreq < 1) break; // No more pairs to merge
+
+        const [p1, p2] = bestPair.split(' ');
+        const mergedToken = p1 + p2;
+        merges.push([p1, p2]);
+
+        vocab[mergedToken] = nextId;
+        reverseVocab[nextId] = mergedToken;
+        freqs[mergedToken] = maxFreq * 10;
+        nextId++;
+
+        // Update word splits with new merged symbol
+        const newSplits = {};
+        const regex = new RegExp(`(?<=^| )${p1} ${p2}(?=$| )`, 'g');
+        for (const [w, count] of Object.entries(splits)) {
+          const updated = w.replace(regex, mergedToken);
+          newSplits[updated] = count;
+        }
+        splits = newSplits;
+      }
+
+      return { vocab, reverseVocab, merges, freqs, baseChars };
+    }
+
+    function tokenizeWithBPE(text, bpeModel) {
+      if (!text || text.trim().length === 0) return [];
+      const clean = text.trim();
+      const words = clean.split(/\s+/);
+      const resultTokens = [];
+
+      let seqPos = 0;
+
+      for (let wIdx = 0; wIdx < words.length; wIdx++) {
+        const rawWord = words[wIdx];
+        // Clean punctuation attachments
+        const sub = rawWord.toLowerCase();
+        let symbols = sub.split('');
+        symbols.push('</w>');
+
+        // Apply learned merges in chronological order
+        for (const [p1, p2] of bpeModel.merges) {
+          const merged = p1 + p2;
+          let i = 0;
+          while (i < symbols.length - 1) {
+            if (symbols[i] === p1 && symbols[i + 1] === p2) {
+              symbols.splice(i, 2, merged);
+            } else {
+              i++;
+            }
+          }
+        }
+
+        for (let sIdx = 0; sIdx < symbols.length; sIdx++) {
+          const sym = symbols[sIdx];
+          const displayStr = sym.replace('</w>', '');
+          if (!displayStr) continue;
+
+          let id = bpeModel.vocab[sym];
+          if (id === undefined) {
+            id = bpeModel.vocab[displayStr] !== undefined ? bpeModel.vocab[displayStr] : bpeModel.vocab['<UNK>'] || 1;
+          }
+
+          const isSubword = symbols.length > 2 && sIdx > 0;
+
+          resultTokens.push({
+            text: displayStr,
+            rawToken: sym,
+            id: id,
+            pos: seqPos++,
+            isSubword: isSubword,
+            charLength: displayStr.length
+          });
+        }
+      }
+
+      return resultTokens;
+    }
+
+    /* ==========================================================================
+       THREE.JS 3D VECTOR SPACE IMPLEMENTATION
+       ========================================================================== */
+    function init3DVectorSpace() {
+      const container = document.getElementById('vector-3d-canvas-container');
+      if (!container) return;
+
+      const width = container.clientWidth || 800;
+      const height = container.clientHeight || 520;
+
+      // Scene, Camera, Renderer
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x05070c);
+
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+      camera.position.set(4, 3, 5);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // OrbitControls
+      let controls = null;
+      if (typeof THREE.OrbitControls !== 'undefined') {
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 25;
+        controls.minDistance = 1;
+      }
+
+      // Grid and Axes
+      const gridHelper = new THREE.GridHelper(10, 20, 0x1e293b, 0x0f172a);
+      gridHelper.position.y = -2;
+      scene.add(gridHelper);
+
+      const axesHelper = new THREE.AxesHelper(3);
+      scene.add(axesHelper);
+
+      // Points Group
+      const pointsGroup = new THREE.Group();
+      scene.add(pointsGroup);
+
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+      scene.add(ambientLight);
+
+      const pointLight = new THREE.PointLight(0x06b6d4, 1.5, 50);
+      pointLight.position.set(5, 5, 5);
+      scene.add(pointLight);
+
+      // Raycasting for Hover Tooltips
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      AppState.threeApp = {
+        scene,
+        camera,
+        renderer,
+        controls,
+        pointsGroup,
+        axesHelper,
+        gridHelper,
+        autoRotate: true,
+        pointMeshes: [],
+        raycaster,
+        mouse,
+        activeData: [...DEFAULT_3D_POINTS]
+      };
+
+      // Populate Initial Points
+      rebuild3DPoints();
+
+      // Render Loop
+      function animate() {
+        requestAnimationFrame(animate);
+
+        if (AppState.threeApp.controls) {
+          AppState.threeApp.controls.autoRotate = AppState.threeApp.autoRotate;
+          AppState.threeApp.controls.autoRotateSpeed = 0.8;
+          AppState.threeApp.controls.update();
+        }
+
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // Resize Listener
+      window.addEventListener('resize', () => {
+        if (!container) return;
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      });
+
+      // Mouse Move for Tooltip
+      const tooltip = document.getElementById('point-hover-tooltip');
+      container.addEventListener('mousemove', (e) => {
+        const rect = container.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(AppState.threeApp.pointMeshes);
+
+        if (intersects.length > 0) {
+          const hit = intersects[0].object;
+          const data = hit.userData;
+          tooltip.style.display = 'block';
+          tooltip.style.left = `${e.clientX - rect.left + 14}px`;
+          tooltip.style.top = `${e.clientY - rect.top + 14}px`;
+          tooltip.innerHTML = `<strong>${data.text}</strong><br><span style="color:${CATEGORY_COLORS[data.category]?.hex || '#fff'}; font-size:10px;">[${data.category}]</span><br>(${data.coords[0].toFixed(2)}, ${data.coords[1].toFixed(2)}, ${data.coords[2].toFixed(2)})`;
+          container.style.cursor = 'pointer';
+        } else {
+          tooltip.style.display = 'none';
+          container.style.cursor = 'grab';
+        }
+      });
+    }
+
+    function rebuild3DPoints() {
+      const { pointsGroup, pointMeshes, activeData } = AppState.threeApp;
+      if (!pointsGroup) return;
+
+      // Clear existing meshes
+      while (pointsGroup.children.length > 0) {
+        pointsGroup.remove(pointsGroup.children[0]);
+      }
+      pointMeshes.length = 0;
+
+      const sphereGeo = new THREE.SphereGeometry(0.12, 16, 16);
+
+      activeData.forEach((item, idx) => {
+        const catConfig = CATEGORY_COLORS[item.category] || { three: 0xffffff, hex: '#fff' };
+        const mat = new THREE.MeshStandardMaterial({
+          color: catConfig.three,
+          emissive: catConfig.three,
+          emissiveIntensity: 0.35,
+          roughness: 0.2,
+          metalness: 0.6
+        });
+
+        const mesh = new THREE.Mesh(sphereGeo, mat);
+        mesh.position.set(item.coords[0], item.coords[1], item.coords[2]);
+        mesh.userData = item;
+
+        // Line to Origin
+        const lineMat = new THREE.LineBasicMaterial({
+          color: catConfig.three,
+          transparent: true,
+          opacity: 0.2
+        });
+        const lineGeo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(0, 0, 0),
+          mesh.position
+        ]);
+        const line = new THREE.Line(lineGeo, lineMat);
+        pointsGroup.add(line);
+
+        pointsGroup.add(mesh);
+        pointMeshes.push(mesh);
+      });
+
+      const countPill = document.getElementById('canvas-point-count');
+      if (countPill) countPill.innerText = activeData.length;
+
+      renderCategoryLegend();
+    }
+
+    function renderCategoryLegend() {
+      const legendList = document.getElementById('category-legend-list');
+      if (!legendList) return;
+
+      legendList.innerHTML = Object.entries(CATEGORY_COLORS).map(([cat, config]) => {
+        const count = AppState.threeApp.activeData.filter(d => d.category === cat).length;
+        return `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 10px; background:var(--bg-surface-elevated); border-radius:var(--radius-sm); border:1px solid var(--border-subtle); font-size:11.5px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="width:9px; height:9px; border-radius:50%; background:${config.hex}; display:inline-block;"></span>
+              <span>${cat}</span>
+            </div>
+            <span style="font-family:var(--font-mono); color:var(--text-muted); font-size:11px;">${count}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* ==========================================================================
+       ATTENTION VISUALIZER MECHANISM
+       ========================================================================== */
+    function computeScaledDotProductAttention(tokens, headIdx = 0) {
+      const n = tokens.length;
+      if (n === 0) return { matrix: [], q: [], k: [], v: [] };
+
+      const d_k = 8;
+      const Q = [];
+      const K = [];
+      const V = [];
+
+      // Head specialization weights
+      const headScales = [
+        { qShift: 1.2, kShift: 0.9, nextBoost: 2.5 },  // Head 1: Syntactic (Next token)
+        { qShift: 0.5, kShift: 0.5, nextBoost: 0.0 },  // Head 2: Semantic Core
+        { qShift: 2.1, kShift: 1.8, nextBoost: -1.0 }, // Head 3: Positional
+        { qShift: 0.1, kShift: 0.1, nextBoost: 0.8 }   // Head 4: Broad / Global
+      ][headIdx] || { qShift: 1.0, kShift: 1.0, nextBoost: 0 };
+
+      // Generate projection vectors
+      for (let i = 0; i < n; i++) {
+        const text = tokens[i].text.toLowerCase();
+        const baseVec = computeDeterministicEmbedding(text, d_k);
+
+        const qVec = new Float32Array(d_k);
+        const kVec = new Float32Array(d_k);
+        const vVec = new Float32Array(d_k);
+
+        for (let d = 0; d < d_k; d++) {
+          qVec[d] = baseVec[d] * Math.sin((d + 1) * headScales.qShift + i * 0.3);
+          kVec[d] = baseVec[d] * Math.cos((d + 1) * headScales.kShift + i * 0.3);
+          vVec[d] = baseVec[d] * Math.sin((d + 1) * 0.7);
+        }
+
+        Q.push(qVec);
+        K.push(kVec);
+        V.push(vVec);
+      }
+
+      // Compute raw scores S = (Q * K^T) / sqrt(d_k)
+      const matrix = [];
+      const sqrtDk = Math.sqrt(d_k);
+
+      for (let i = 0; i < n; i++) {
+        const rowScores = [];
+        for (let j = 0; j < n; j++) {
+          let dot = 0;
+          for (let d = 0; d < d_k; d++) dot += Q[i][d] * K[j][d];
+
+          let score = dot / sqrtDk;
+
+          // Syntactic next-token or coreference boost
+          if (headIdx === 0 && j === i + 1) score += headScales.nextBoost;
+          if (tokens[i].text === "it" && tokens[j].text === "animal") score += 2.8;
+
+          rowScores.push(score);
+        }
+
+        // Softmax normalization across row
+        const maxScore = Math.max(...rowScores);
+        const expScores = rowScores.map(s => Math.exp(s - maxScore));
+        const sumExp = expScores.reduce((acc, v) => acc + v, 0) || 1e-9;
+        const rowSoftmax = expScores.map(v => v / sumExp);
+
+        matrix.push(rowSoftmax);
+      }
+
+      return { matrix, Q, K, V };
+    }
+
+    function renderAttentionUI() {
+      const sentence = AppState.attentionSentence;
+      const tokens = sentence.split(/\s+/).map((t, idx) => ({ text: t, idx }));
+      const { matrix } = computeScaledDotProductAttention(tokens, AppState.attentionHead);
+
+      // Render token nodes
+      const nodeList = document.getElementById('attention-tokens-node-list');
+      if (!nodeList) return;
+
+      nodeList.innerHTML = tokens.map((tok, i) => `
+        <span class="token-chip ${i === AppState.selectedAttentionTokenIdx ? 'selected' : ''}" 
+              style="background:var(--bg-surface-elevated); border-color:${i === AppState.selectedAttentionTokenIdx ? 'var(--cyan-400)' : 'var(--border-subtle)'};"
+              onclick="selectAttentionToken(${i})">
+          ${tok.text}
+          <span class="token-chip-id">[${i}]</span>
+        </span>
+      `).join('');
+
+      // Draw Attention Arcs on Canvas
+      drawAttentionArcs(tokens, matrix, AppState.selectedAttentionTokenIdx);
+
+      // Render Heatmap Table
+      const heatmapTable = document.getElementById('attention-heatmap-table');
+      if (!heatmapTable) return;
+
+      let tableHtml = '<thead><tr><th>Token</th>' + tokens.map(t => `<th title="${t.text}">${t.text.slice(0, 5)}</th>`).join('') + '</tr></thead><tbody>';
+
+      for (let i = 0; i < tokens.length; i++) {
+        tableHtml += `<tr><td style="font-weight:600; text-align:left;">${tokens[i].text}</td>`;
+        for (let j = 0; j < tokens.length; j++) {
+          const weight = matrix[i][j];
+          const alpha = Math.min(Math.max(weight, 0.05), 1);
+          const bg = `rgba(6, 182, 212, ${alpha.toFixed(2)})`;
+          const textColor = alpha > 0.45 ? '#ffffff' : 'var(--text-secondary)';
+          tableHtml += `<td style="background:${bg}; color:${textColor}; font-family:var(--font-mono);" title="${tokens[i].text} -> ${tokens[j].text}: ${(weight*100).toFixed(1)}%">${(weight).toFixed(2)}</td>`;
+        }
+        tableHtml += '</tr>';
+      }
+      tableHtml += '</tbody>';
+      heatmapTable.innerHTML = tableHtml;
+    }
+
+    function drawAttentionArcs(tokens, matrix, selectedIdx) {
+      const canvas = document.getElementById('attention-arc-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      if (tokens.length === 0 || !matrix[selectedIdx]) return;
+
+      const n = tokens.length;
+      const padding = 40;
+      const stepX = (w - padding * 2) / Math.max(n - 1, 1);
+      const yPos = h - 45;
+
+      // Draw token position marks
+      tokens.forEach((tok, i) => {
+        const x = padding + i * stepX;
+        ctx.fillStyle = i === selectedIdx ? '#06b6d4' : '#64748b';
+        ctx.beginPath();
+        ctx.arc(x, yPos, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.font = '10px JetBrains Mono';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = i === selectedIdx ? '#ffffff' : '#94a3b8';
+        ctx.fillText(tok.text.slice(0, 7), x, yPos + 18);
+      });
+
+      // Draw connecting arcs from selected token
+      const weights = matrix[selectedIdx];
+      const srcX = padding + selectedIdx * stepX;
+
+      tokens.forEach((tok, j) => {
+        const targetX = padding + j * stepX;
+        const weight = weights[j];
+        if (weight < 0.02) return;
+
+        const midX = (srcX + targetX) / 2;
+        const arcHeight = Math.min(Math.abs(srcX - targetX) * 0.7, yPos - 30);
+
+        ctx.beginPath();
+        ctx.moveTo(srcX, yPos);
+        ctx.quadraticCurveTo(midX, yPos - arcHeight, targetX, yPos);
+        ctx.strokeStyle = `rgba(6, 182, 212, ${Math.min(weight * 1.5, 1)})`;
+        ctx.lineWidth = Math.max(weight * 6, 1);
+        ctx.stroke();
+      });
+    }
+
+    window.selectAttentionToken = function(idx) {
+      AppState.selectedAttentionTokenIdx = idx;
+      renderAttentionUI();
+    };
+
+    /* ==========================================================================
+       SIMILARITY ANALYZER IMPLEMENTATION
+       ========================================================================== */
+    function updateSimilarityPair() {
+      const textA = document.getElementById('sim-text-a').value.trim();
+      const textB = document.getElementById('sim-text-b').value.trim();
+
+      const vecA = computeDeterministicEmbedding(textA, 16);
+      const vecB = computeDeterministicEmbedding(textB, 16);
+
+      const sim = calculateCosineSimilarity(vecA, vecB);
+      const clampedSim = Math.max(-1, Math.min(1, sim));
+
+      // Update UI
+      const scoreElem = document.getElementById('similarity-score-value');
+      const barElem = document.getElementById('similarity-meter-bar');
+      const verdictElem = document.getElementById('similarity-score-verdict');
+
+      if (scoreElem) scoreElem.innerText = clampedSim.toFixed(3);
+      if (barElem) {
+        const pct = ((clampedSim + 1) / 2) * 100;
+        barElem.style.width = `${pct}%`;
+      }
+
+      if (verdictElem) {
+        if (clampedSim > 0.8) {
+          verdictElem.innerText = "High Semantic Proximity";
+          verdictElem.style.color = "var(--emerald-400)";
+        } else if (clampedSim > 0.5) {
+          verdictElem.innerText = "Moderate Correlation";
+          verdictElem.style.color = "var(--cyan-400)";
+        } else if (clampedSim > 0.2) {
+          verdictElem.innerText = "Weak Association";
+          verdictElem.style.color = "var(--amber-400)";
+        } else {
+          verdictElem.innerText = "Orthogonal / Unrelated";
+          verdictElem.style.color = "var(--rose-400)";
+        }
+      }
+
+      // Math steps
+      let dot = 0, normA = 0, normB = 0;
+      for (let i = 0; i < vecA.length; i++) {
+        dot += vecA[i] * vecB[i];
+        normA += vecA[i] * vecA[i];
+        normB += vecB[i] * vecB[i];
+      }
+      normA = Math.sqrt(normA);
+      normB = Math.sqrt(normB);
+
+      const deg = (Math.acos(Math.max(-1, Math.min(1, clampedSim))) * (180 / Math.PI)).toFixed(1);
+
+      document.getElementById('math-dot-val').innerText = dot.toFixed(3);
+      document.getElementById('math-norm-a').innerText = normA.toFixed(3);
+      document.getElementById('math-norm-b').innerText = normB.toFixed(3);
+      document.getElementById('math-angle-deg').innerText = `${deg}°`;
+    }
+
+    function renderSimilarityMatrix() {
+      const sentences = [
+        "The cat is sleeping on the couch.",
+        "A kitten is resting peacefully.",
+        "Deep learning trains neural networks on tensors.",
+        "Machine learning models process neural embeddings.",
+        "The chef baked fresh sourdough bread.",
+        "Rocket engines ignite liquid propellant into orbit."
+      ];
+
+      const vectors = sentences.map(s => computeDeterministicEmbedding(s, 16));
+      const table = document.getElementById('similarity-matrix-table');
+      if (!table) return;
+
+      let html = '<thead><tr><th>Sentence</th>' + sentences.map((s, idx) => `<th>S${idx+1}</th>`).join('') + '</tr></thead><tbody>';
+
+      for (let i = 0; i < sentences.length; i++) {
+        html += `<tr><td style="text-align:left; font-size:11.5px; font-weight:600;"><span class="badge" style="margin-right:6px;">S${i+1}</span>${sentences[i].slice(0, 24)}...</td>`;
+        for (let j = 0; j < sentences.length; j++) {
+          const sim = calculateCosineSimilarity(vectors[i], vectors[j]);
+          const alpha = Math.max(0.05, Math.min(1, (sim + 1) / 2));
+          const bg = `rgba(6, 182, 212, ${(alpha * 0.8).toFixed(2)})`;
+          html += `<td style="background:${bg}; font-family:var(--font-mono); font-size:11px;">${sim.toFixed(2)}</td>`;
+        }
+        html += '</tr>';
+      }
+      html += '</tbody>';
+      table.innerHTML = html;
+    }
+
+    /* ==========================================================================
+       END-TO-END PIPELINE SIMULATOR
+       ========================================================================== */
+    function jumpToPipelineStep(step) {
+      AppState.pipelineCurrentStep = step;
+
+      // Update Stepper circles
+      document.querySelectorAll('.pipeline-step-item').forEach(item => {
+        const s = parseInt(item.getAttribute('data-step'), 10);
+        item.classList.remove('active', 'completed');
+        if (s === step) item.classList.add('active');
+        else if (s < step) item.classList.add('completed');
+      });
+
+      // Update panes
+      document.querySelectorAll('.pipeline-step-pane').forEach((pane, idx) => {
+        pane.style.display = (idx + 1 === step) ? 'block' : 'none';
+      });
+
+      // Update prev/next buttons
+      document.getElementById('btn-pipe-prev').disabled = (step === 1);
+      document.getElementById('btn-pipe-next').disabled = (step === 6);
+
+      // Process step data
+      executePipelineStep(step);
+    }
+
+    function executePipelineStep(step) {
+      const prompt = document.getElementById('pipe-input-prompt').value.trim() || "The quick brown fox jumps over the lazy";
+
+      if (step >= 2) {
+        // Tokenize
+        const tokens = tokenizeWithBPE(prompt, AppState.bpeModel);
+        const tokContainer = document.getElementById('pipe-tokens-container');
+        if (tokContainer) {
+          tokContainer.innerHTML = tokens.map(t => {
+            const col = generateColorForToken(t.text);
+            return `<span class="token-chip" style="background:${col.bg}; border-color:${col.border};">${t.text}</span>`;
+          }).join('');
+        }
+      }
+
+      if (step >= 3) {
+        // Token IDs
+        const tokens = tokenizeWithBPE(prompt, AppState.bpeModel);
+        const idsContainer = document.getElementById('pipe-ids-container');
+        if (idsContainer) {
+          idsContainer.innerHTML = tokens.map(t => `
+            <div class="metric-card" style="padding:6px 12px; text-align:center;">
+              <div style="font-size:10px; color:var(--text-muted);">${t.text}</div>
+              <div style="font-family:var(--font-mono); font-size:15px; font-weight:700; color:var(--cyan-400);">${t.id}</div>
+            </div>
+          `).join('');
+        }
+      }
+
+      if (step >= 4) {
+        // Embeddings + Positional
+        const tokens = tokenizeWithBPE(prompt, AppState.bpeModel);
+        const embContainer = document.getElementById('pipe-embeddings-container');
+        if (embContainer) {
+          embContainer.innerHTML = tokens.slice(0, 5).map((t, idx) => {
+            const vec = computeDeterministicEmbedding(t.text, 8);
+            const cells = Array.from(vec).map(v => {
+              const bg = v > 0 ? `rgba(6, 182, 212, ${Math.min(v, 1)})` : `rgba(244, 63, 94, ${Math.min(-v, 1)})`;
+              return `<span style="background:${bg}; padding:2px 4px; border-radius:2px; font-size:9px; font-family:var(--font-mono);">${v.toFixed(2)}</span>`;
+            }).join(' ');
+
+            return `
+              <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-input); padding:6px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle); font-size:12px;">
+                <span style="font-family:var(--font-mono); font-weight:600; color:var(--text-primary); min-width:80px;">[Pos ${idx}] ${t.text}</span>
+                <div style="display:flex; gap:4px; overflow-x:auto;">${cells}</div>
+              </div>
+            `;
+          }).join('') + (tokens.length > 5 ? `<div style="font-size:11px; color:var(--text-muted); text-align:center;">... and ${tokens.length - 5} more tokens</div>` : '');
+        }
+      }
+
+      if (step >= 5) {
+        // Multi-head Attention
+        const tokens = tokenizeWithBPE(prompt, AppState.bpeModel);
+        const { matrix } = computeScaledDotProductAttention(tokens, 0);
+        const attContainer = document.getElementById('pipe-attention-container');
+        if (attContainer && matrix.length > 0) {
+          const lastIdx = matrix.length - 1;
+          const lastRow = matrix[lastIdx];
+
+          attContainer.innerHTML = `
+            <div style="font-size:12px; margin-bottom:6px; color:var(--text-secondary);">
+              Final token <strong>"${tokens[lastIdx]?.text || 'lazy'}"</strong> attending to past tokens:
+            </div>
+            ${tokens.map((t, idx) => {
+              const weight = lastRow[idx] || 0;
+              const pct = (weight * 100).toFixed(1);
+              return `
+                <div style="display:flex; align-items:center; gap:10px; font-size:12px;">
+                  <span style="min-width:70px; font-family:var(--font-mono);">${t.text}</span>
+                  <div style="flex:1; height:8px; background:var(--bg-input); border-radius:4px; overflow:hidden;">
+                    <div style="height:100%; width:${pct}%; background:var(--cyan-500);"></div>
+                  </div>
+                  <span style="font-family:var(--font-mono); font-size:11px; color:var(--cyan-400); min-width:45px;">${pct}%</span>
+                </div>
+              `;
+            }).join('')}
+          `;
+        }
+      }
+
+      if (step >= 6) {
+        // Next Token Prediction
+        const candidates = prompt.toLowerCase().includes('lazy')
+          ? [
+              { word: "dog", prob: 92.4 },
+              { word: "fox", prob: 4.1 },
+              { word: "cat", prob: 2.2 },
+              { word: "hound", prob: 0.9 },
+              { word: "rabbit", prob: 0.4 }
+            ]
+          : [
+              { word: "world", prob: 64.2 },
+              { word: "future", prob: 18.5 },
+              { word: "model", prob: 9.8 },
+              { word: "generation", prob: 5.1 },
+              { word: "humanity", prob: 2.4 }
+            ];
+
+        document.getElementById('pipe-top-prediction').innerText = `"${candidates[0].word}"`;
+        document.getElementById('pipe-top-prob').innerText = `${candidates[0].prob}% Probability`;
+
+        const barsContainer = document.getElementById('pipe-top5-bars');
+        if (barsContainer) {
+          barsContainer.innerHTML = candidates.map(c => `
+            <div style="display:flex; align-items:center; gap:10px; font-size:12px;">
+              <span style="min-width:90px; font-family:var(--font-mono); font-weight:600;">"${c.word}"</span>
+              <div style="flex:1; height:12px; background:var(--bg-surface-elevated); border-radius:6px; overflow:hidden;">
+                <div style="height:100%; width:${c.prob}%; background:linear-gradient(90deg, var(--cyan-500), var(--blue-500));"></div>
+              </div>
+              <span style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-primary); min-width:50px;">${c.prob}%</span>
+            </div>
+          `).join('');
+        }
+      }
+    }
+
+    /* ==========================================================================
+       TAB NAVIGATION & SHELL ROUTING
+       ========================================================================== */
+    function switchTab(targetTabId) {
+      AppState.activeTab = targetTabId;
+
+      // Update Nav active classes
+      document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
+        if (item.getAttribute('data-target') === targetTabId) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+
+      // Update Section views
+      document.querySelectorAll('.view-section').forEach(sec => {
+        if (sec.id === `sec-${targetTabId}`) {
+          sec.classList.add('active');
+        } else {
+          sec.classList.remove('active');
+        }
+      });
+
+      // Update breadcrumb
+      const titles = {
+        'overview': 'Overview',
+        'tokenizer': 'Tokenizer Lab',
+        'vocabulary': 'Vocabulary Explorer',
+        'embeddings': 'Embedding Studio',
+        'vector-space': 'Vector Space (3D)',
+        'similarity': 'Similarity Analyzer',
+        'attention': 'Attention Visualizer',
+        'pipeline': 'Pipeline Playground',
+        'concepts': 'Learn & Concepts'
+      };
+      const breadcrumb = document.getElementById('current-section-breadcrumb');
+      if (breadcrumb) breadcrumb.innerText = titles[targetTabId] || 'Overview';
+
+      // Section specific triggers
+      if (targetTabId === 'vector-space' && AppState.threeApp.renderer) {
+        setTimeout(() => {
+          const container = document.getElementById('vector-3d-canvas-container');
+          if (container && AppState.threeApp.camera) {
+            AppState.threeApp.camera.aspect = container.clientWidth / container.clientHeight;
+            AppState.threeApp.camera.updateProjectionMatrix();
+            AppState.threeApp.renderer.setSize(container.clientWidth, container.clientHeight);
+          }
+        }, 50);
+      } else if (targetTabId === 'attention') {
+        renderAttentionUI();
+      } else if (targetTabId === 'similarity') {
+        updateSimilarityPair();
+        renderSimilarityMatrix();
+      }
+
+      // Close mobile sidebar if open
+      document.getElementById('app-sidebar').classList.remove('open');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* ==========================================================================
+       PRESETS & DEMO EXPERIMENTS
+       ========================================================================== */
+    window.loadPresetExperiment = function(presetKey) {
+      if (presetKey === 'semantic-drift') {
+        switchTab('similarity');
+        document.getElementById('sim-text-a').value = "The cat is sleeping on the couch.";
+        document.getElementById('sim-text-b').value = "A kitten is resting peacefully.";
+        updateSimilarityPair();
+      } else if (presetKey === 'subword-split') {
+        switchTab('tokenizer');
+        setTokenizerInput("unhappiness and transformerization are extraordinary phenomena.");
+        runTokenizer();
+      } else if (presetKey === 'attention-coref') {
+        switchTab('attention');
+        setAttentionSentence("The animal didn't cross the street because it was tired.");
+        renderAttentionUI();
+      }
+    };
+
+    window.setTokenizerInput = function(text) {
+      const input = document.getElementById('tokenizer-input-text');
+      if (input) {
+        input.value = text;
+        runTokenizer();
+      }
+    };
+
+    window.setEmbeddingInput = function(text) {
+      const input = document.getElementById('embedding-input-sentence');
+      if (input) {
+        input.value = text;
+        computeAndRenderEmbedding();
+      }
+    };
+
+    window.setSimilarityPair = function(a, b) {
+      document.getElementById('sim-text-a').value = a;
+      document.getElementById('sim-text-b').value = b;
+      updateSimilarityPair();
+    };
+
+    window.setAttentionSentence = function(sentence) {
+      const input = document.getElementById('attention-sentence-input');
+      if (input) input.value = sentence;
+      AppState.attentionSentence = sentence;
+      AppState.selectedAttentionTokenIdx = 0;
+      renderAttentionUI();
+    };
+
+    window.setPipePrompt = function(prompt) {
+      const input = document.getElementById('pipe-input-prompt');
+      if (input) {
+        input.value = prompt;
+        jumpToPipelineStep(1);
+      }
+    };
+
+    /* ==========================================================================
+       TOKENIZER LAB CONTROLS & INSPECTOR
+       ========================================================================== */
+    function runTokenizer() {
+      const text = document.getElementById('tokenizer-input-text').value;
+      const tokens = tokenizeWithBPE(text, AppState.bpeModel);
+      AppState.tokensGenerated = tokens;
+
+      // Update counters
+      const charCount = text.length;
+      document.getElementById('input-stats-chars').innerText = `${charCount} characters`;
+      document.getElementById('token-count-pill').innerText = `${tokens.length} tokens`;
+
+      // Token IDs list
+      const ids = tokens.map(t => t.id);
+      document.getElementById('token-ids-sequence').innerText = `[${ids.join(', ')}]`;
+
+      const compRatio = tokens.length > 0 ? (charCount / tokens.length).toFixed(2) : "0.00";
+      document.getElementById('compression-ratio-stat').innerText = `${compRatio} chars/token`;
+
+      // Render Token Chips
+      const wrapper = document.getElementById('token-chips-wrapper');
+      wrapper.innerHTML = tokens.map((tok, idx) => {
+        const col = generateColorForToken(tok.text);
+        return `
+          <span class="token-chip" data-idx="${idx}" style="background:${col.bg}; border-color:${col.border}; color:var(--text-primary);" onclick="inspectToken(${idx})">
+            <span>${tok.text}</span>
+            <span class="token-chip-id">${tok.id}</span>
+          </span>
+        `;
+      }).join('');
+
+      // Auto inspect first token if available
+      if (tokens.length > 0) inspectToken(0);
+    }
+
+    window.inspectToken = function(idx) {
+      const tokens = AppState.tokensGenerated;
+      const token = tokens[idx];
+      if (!token) return;
+
+      document.querySelectorAll('#token-chips-wrapper .token-chip').forEach((el, i) => {
+        el.classList.toggle('selected', i === idx);
+      });
+
+      document.getElementById('token-inspector-empty').style.display = 'none';
+      document.getElementById('token-inspector-details').style.display = 'block';
+
+      document.getElementById('inspector-token-badge').innerText = `"${token.text}"`;
+      document.getElementById('inspector-type-badge').innerText = token.isSubword ? "Subword Token (##)" : "Whole Word";
+      document.getElementById('inspector-token-id').innerText = token.id;
+      document.getElementById('inspector-token-pos').innerText = token.pos;
+      document.getElementById('inspector-token-len').innerText = `${token.charLength} chars`;
+      document.getElementById('inspector-token-bytes').innerText = `~${token.charLength} bytes`;
+    };
+
+    function renderVocabTable(filterType = 'all', searchQuery = '') {
+      const { vocab, reverseVocab, freqs, merges } = AppState.bpeModel;
+      const tbody = document.getElementById('vocab-table-body');
+      if (!tbody) return;
+
+      const entries = Object.entries(vocab).map(([tok, id]) => {
+        const isSpecial = tok.startsWith('<') && tok.endsWith('>');
+        const isMerged = merges.some(m => (m[0] + m[1]) === tok);
+        const type = isSpecial ? 'Special' : (isMerged ? 'BPE Merge' : 'Base Char');
+        return {
+          id,
+          text: tok,
+          type,
+          length: tok.length,
+          freq: freqs[tok] || 1
+        };
+      });
+
+      // Filter
+      const q = searchQuery.toLowerCase();
+      const filtered = entries.filter(e => {
+        if (filterType === 'base' && e.type !== 'Base Char') return false;
+        if (filterType === 'merged' && e.type !== 'BPE Merge') return false;
+        if (filterType === 'special' && e.type !== 'Special') return false;
+        if (q && !e.text.toLowerCase().includes(q) && !String(e.id).includes(q)) return false;
+        return true;
+      });
+
+      // Sort by ID ascending
+      filtered.sort((a, b) => a.id - b.id);
+
+      tbody.innerHTML = filtered.slice(0, 150).map(e => `
+        <tr>
+          <td style="font-family:var(--font-mono); color:var(--cyan-400); font-weight:600;">${e.id}</td>
+          <td style="font-family:var(--font-mono); font-weight:600;">${e.text}</td>
+          <td><span class="badge">${e.type}</span></td>
+          <td>${e.length}</td>
+          <td style="font-family:var(--font-mono);">${e.freq}</td>
+          <td>
+            <button class="btn btn-secondary btn-sm" onclick="setTokenizerInput('${e.text.replace(/['"\\]/g, '')}')">Test</button>
+          </td>
+        </tr>
+      `).join('');
+
+      // Update Vocabulary stats
+      document.getElementById('vocab-stat-total').innerText = Object.keys(vocab).length;
+      document.getElementById('vocab-stat-base-chars').innerText = AppState.bpeModel.baseChars.size;
+      document.getElementById('vocab-stat-merges').innerText = merges.length;
+
+      let sumLen = 0;
+      Object.keys(vocab).forEach(k => sumLen += k.length);
+      const avgLen = (sumLen / Math.max(Object.keys(vocab).length, 1)).toFixed(1);
+      document.getElementById('vocab-stat-avg-len').innerText = avgLen;
+    }
+
+    /* ==========================================================================
+       EMBEDDING STUDIO CONTROLS
+       ========================================================================== */
+    function computeAndRenderEmbedding() {
+      const sentence = document.getElementById('embedding-input-sentence').value.trim();
+      const dim = parseInt(document.getElementById('embedding-dim-select').value, 10);
+      AppState.currentEmbeddingDim = dim;
+
+      const vec = computeDeterministicEmbedding(sentence, dim);
+      AppState.currentSentenceVector = vec;
+
+      // Stats
+      let min = Infinity, max = -Infinity, norm = 0;
+      for (let i = 0; i < dim; i++) {
+        if (vec[i] < min) min = vec[i];
+        if (vec[i] > max) max = vec[i];
+        norm += vec[i] * vec[i];
+      }
+      norm = Math.sqrt(norm);
+
+      document.getElementById('emb-stat-dim').innerText = dim;
+      document.getElementById('emb-stat-norm').innerText = norm.toFixed(3);
+      document.getElementById('emb-stat-min').innerText = min.toFixed(2);
+      document.getElementById('emb-stat-max').innerText = max.toFixed(2);
+
+      // Render Heatmap cells
+      const cellsContainer = document.getElementById('vector-heatmap-cells');
+      cellsContainer.innerHTML = Array.from(vec).map((val, idx) => {
+        const bg = val > 0 
+          ? `rgba(6, 182, 212, ${Math.min(val * 1.5, 1)})` 
+          : `rgba(244, 63, 94, ${Math.min(-val * 1.5, 1)})`;
+        return `
+          <div class="vector-cell" style="background:${bg};" title="Dim ${idx}: ${val.toFixed(4)}">
+            <span style="opacity:0.6;">d${idx}</span>
+            <span>${val.toFixed(2)}</span>
+          </div>
+        `;
+      }).join('');
+
+      // Raw array code block
+      document.getElementById('vector-raw-display').innerText = `[\n  ${Array.from(vec).map(v => v.toFixed(4)).join(', ')}\n]`;
+
+      // Word vs Sentence Breakdown
+      const words = sentence.split(/\s+/).slice(0, 6);
+      const wordContainer = document.getElementById('word-token-vectors-list');
+      wordContainer.innerHTML = words.map(w => {
+        const wVec = computeDeterministicEmbedding(w, dim);
+        const preview = Array.from(wVec).slice(0, 8).map(v => v.toFixed(2)).join(', ');
+        return `
+          <div style="background:var(--bg-input); padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:600; font-family:var(--font-mono); font-size:12.5px;">"${w}"</span>
+            <span style="font-family:var(--font-mono); font-size:11px; color:var(--cyan-400);">[${preview}, ...]</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* ==========================================================================
+       MODAL CONTROLS
+       ========================================================================== */
+    window.openModal = function(id) {
+      const modal = document.getElementById(id);
+      if (modal) modal.classList.add('active');
+    };
+
+    window.closeModal = function(id) {
+      const modal = document.getElementById(id);
+      if (modal) modal.classList.remove('active');
+    };
+
+    /* ==========================================================================
+       INITIALIZATION & EVENT BINDINGS
+       ========================================================================== */
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initialize Lucide icons if available
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+
+      // Initial BPE training
+      const initialCorpus = document.getElementById('tokenizer-training-corpus').value;
+      AppState.bpeModel = trainBPE(initialCorpus, 65);
+
+      // Initial Tokenizer run
+      runTokenizer();
+      renderVocabTable();
+
+      // Initial Embedding run
+      computeAndRenderEmbedding();
+
+      // Initial 3D Vector Space
+      init3DVectorSpace();
+
+      // Initial Similarity & Attention
+      updateSimilarityPair();
+      renderSimilarityMatrix();
+      renderAttentionUI();
+
+      // Initial Pipeline step
+      jumpToPipelineStep(1);
+
+      // Navigation Link clicks
+      document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const target = item.getAttribute('data-target');
+          if (target) switchTab(target);
+        });
+      });
+
+      // Mobile Menu Toggle
+      const menuBtn = document.getElementById('menu-toggle-btn');
+      if (menuBtn) {
+        menuBtn.addEventListener('click', () => {
+          document.getElementById('app-sidebar').classList.toggle('open');
+        });
+      }
+
+      // Theme Toggle
+      const themeBtn = document.getElementById('theme-toggle-btn');
+      themeBtn.addEventListener('click', () => {
+        const isDark = document.documentElement.classList.toggle('dark');
+        document.documentElement.classList.toggle('light', !isDark);
+        AppState.theme = isDark ? 'dark' : 'light';
+        document.getElementById('theme-icon').setAttribute('data-lucide', isDark ? 'moon' : 'sun');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        // Update 3D scene background
+        if (AppState.threeApp.scene) {
+          AppState.threeApp.scene.background = new THREE.Color(isDark ? 0x05070c : 0xf8fafc);
+        }
+      });
+
+      // Tour & Shortcuts Modals
+      document.getElementById('btn-open-tour').addEventListener('click', () => openModal('modal-tour'));
+      document.getElementById('btn-shortcuts-dialog').addEventListener('click', () => openModal('modal-shortcuts'));
+
+      // Tokenizer Controls
+      document.getElementById('vocab-size-slider').addEventListener('input', (e) => {
+        document.getElementById('vocab-size-label').innerText = e.target.value;
+      });
+
+      document.getElementById('btn-rebuild-tokenizer').addEventListener('click', () => {
+        const corpus = document.getElementById('tokenizer-training-corpus').value;
+        const targetSize = parseInt(document.getElementById('vocab-size-slider').value, 10);
+        AppState.bpeModel = trainBPE(corpus, targetSize);
+        runTokenizer();
+        renderVocabTable();
+      });
+
+      document.getElementById('btn-reset-tokenizer-corpus').addEventListener('click', () => {
+        document.getElementById('tokenizer-training-corpus').value = 
+`the cat sat on the mat.
+the dog chased the cat.
+transformers learn representations using self attention.
+deep neural networks generate intelligent text.`;
+        AppState.bpeModel = trainBPE(document.getElementById('tokenizer-training-corpus').value, 65);
+        runTokenizer();
+        renderVocabTable();
+      });
+
+      document.getElementById('btn-run-tokenizer').addEventListener('click', runTokenizer);
+      document.getElementById('btn-clear-tokenizer-input').addEventListener('click', () => {
+        document.getElementById('tokenizer-input-text').value = '';
+        runTokenizer();
+      });
+
+      document.getElementById('btn-copy-tokens').addEventListener('click', () => {
+        const ids = AppState.tokensGenerated.map(t => t.id);
+        navigator.clipboard.writeText(JSON.stringify(ids));
+        alert('Token IDs copied to clipboard: ' + JSON.stringify(ids));
+      });
+
+      // Vocab search and filter
+      document.getElementById('vocab-search-input').addEventListener('input', (e) => {
+        const filterType = document.getElementById('vocab-filter-type').value;
+        renderVocabTable(filterType, e.target.value);
+      });
+
+      document.getElementById('vocab-filter-type').addEventListener('change', (e) => {
+        const search = document.getElementById('vocab-search-input').value;
+        renderVocabTable(e.target.value, search);
+      });
+
+      document.getElementById('btn-export-vocab-json').addEventListener('click', () => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(AppState.bpeModel.vocab, null, 2));
+        const dlAnchor = document.createElement('a');
+        dlAnchor.setAttribute("href", dataStr);
+        dlAnchor.setAttribute("download", "llm_explorer_vocabulary.json");
+        dlAnchor.click();
+      });
+
+      // Embedding Studio Controls
+      document.getElementById('btn-generate-embedding').addEventListener('click', computeAndRenderEmbedding);
+      document.getElementById('embedding-dim-select').addEventListener('change', computeAndRenderEmbedding);
+
+      document.getElementById('btn-copy-vector-raw').addEventListener('click', () => {
+        if (!AppState.currentSentenceVector) return;
+        const raw = JSON.stringify(Array.from(AppState.currentSentenceVector));
+        navigator.clipboard.writeText(raw);
+        alert('Vector coordinates copied to clipboard!');
+      });
+
+      // 3D Canvas Controls
+      document.getElementById('btn-toggle-auto-rotate').addEventListener('click', () => {
+        AppState.threeApp.autoRotate = !AppState.threeApp.autoRotate;
+        document.getElementById('btn-toggle-auto-rotate').innerText = `Auto Rotate: ${AppState.threeApp.autoRotate ? 'ON' : 'OFF'}`;
+      });
+
+      document.getElementById('btn-reset-3d-camera').addEventListener('click', () => {
+        if (AppState.threeApp.camera && AppState.threeApp.controls) {
+          AppState.threeApp.camera.position.set(4, 3, 5);
+          AppState.threeApp.controls.target.set(0, 0, 0);
+          AppState.threeApp.controls.update();
+        }
+      });
+
+      document.getElementById('btn-reset-default-3d-points').addEventListener('click', () => {
+        AppState.threeApp.activeData = [...DEFAULT_3D_POINTS];
+        rebuild3DPoints();
+      });
+
+      document.getElementById('btn-add-3d-point').addEventListener('click', () => {
+        const textInput = document.getElementById('custom-3d-text-input');
+        const catSelect = document.getElementById('custom-3d-category-select');
+        const text = textInput.value.trim();
+        if (!text) return;
+
+        // Project higher-dimensional embedding to 3D
+        const emb = computeDeterministicEmbedding(text, 16);
+        const x = (emb[0] * 3.5);
+        const y = (emb[1] * 3.5);
+        const z = (emb[2] * 3.5);
+
+        AppState.threeApp.activeData.push({
+          text,
+          category: catSelect.value,
+          coords: [x, y, z]
+        });
+
+        rebuild3DPoints();
+        textInput.value = '';
+      });
+
+      // Similarity live update
+      document.getElementById('sim-text-a').addEventListener('input', updateSimilarityPair);
+      document.getElementById('sim-text-b').addEventListener('input', updateSimilarityPair);
+
+      // Attention Heads
+      document.querySelectorAll('.attention-head-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.attention-head-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          AppState.attentionHead = parseInt(btn.getAttribute('data-head'), 10);
+          renderAttentionUI();
+        });
+      });
+
+      document.getElementById('btn-recompute-attention').addEventListener('click', () => {
+        AppState.attentionSentence = document.getElementById('attention-sentence-input').value.trim();
+        AppState.selectedAttentionTokenIdx = 0;
+        renderAttentionUI();
+      });
+
+      // Pipeline Navigation Controls
+      document.getElementById('btn-pipe-prev').addEventListener('click', () => {
+        if (AppState.pipelineCurrentStep > 1) {
+          jumpToPipelineStep(AppState.pipelineCurrentStep - 1);
+        }
+      });
+
+      document.getElementById('btn-pipe-next').addEventListener('click', () => {
+        if (AppState.pipelineCurrentStep < 6) {
+          jumpToPipelineStep(AppState.pipelineCurrentStep + 1);
+        }
+      });
+
+      document.getElementById('btn-pipe-reset').addEventListener('click', () => {
+        jumpToPipelineStep(1);
+      });
+
+      document.getElementById('btn-pipe-run-all').addEventListener('click', () => {
+        let step = 1;
+        jumpToPipelineStep(step);
+        const interval = setInterval(() => {
+          step++;
+          if (step <= 6) {
+            jumpToPipelineStep(step);
+          } else {
+            clearInterval(interval);
+          }
+        }, 600);
+      });
+
+      // Concept Accordion Toggles
+      document.querySelectorAll('.concept-header').forEach(hdr => {
+        hdr.addEventListener('click', () => {
+          hdr.parentElement.classList.toggle('open');
+        });
+      });
+
+      // Export All Data Button
+      document.getElementById('btn-export-all-data').addEventListener('click', () => {
+        const payload = {
+          exportTimestamp: new Date().toISOString(),
+          bpeModel: {
+            vocabSize: Object.keys(AppState.bpeModel.vocab).length,
+            vocab: AppState.bpeModel.vocab,
+            merges: AppState.bpeModel.merges
+          },
+          currentTokens: AppState.tokensGenerated,
+          points3D: AppState.threeApp.activeData,
+          attentionSentence: AppState.attentionSentence
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+        const dl = document.createElement('a');
+        dl.setAttribute("href", dataStr);
+        dl.setAttribute("download", "llm_pipeline_explorer_full_state.json");
+        dl.click();
+      });
+
+      // Keyboard Shortcuts Listener
+      window.addEventListener('keydown', (e) => {
+        if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+        const tabs = ['overview', 'tokenizer', 'vocabulary', 'embeddings', 'vector-space', 'similarity', 'attention', 'pipeline', 'concepts'];
+        const num = parseInt(e.key, 10);
+        if (num >= 1 && num <= 9) {
+          switchTab(tabs[num - 1]);
+        } else if (e.key === '?') {
+          openModal('modal-shortcuts');
+        } else if (e.key === 'Escape') {
+          closeModal('modal-tour');
+          closeModal('modal-shortcuts');
+        } else if (e.key.toLowerCase() === 't') {
+          themeBtn.click();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
